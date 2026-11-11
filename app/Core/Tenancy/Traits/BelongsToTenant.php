@@ -23,6 +23,13 @@ trait BelongsToTenant
                     $model->tenant_id = $tenantId;
                 }
             }
+
+            if (in_array('branch_id', $model->getFillable()) && empty($model->branch_id)) {
+                $branchId = app(TenantContext::class)->getBranchId();
+                if ($branchId) {
+                    $model->branch_id = $branchId;
+                }
+            }
         });
     }
 

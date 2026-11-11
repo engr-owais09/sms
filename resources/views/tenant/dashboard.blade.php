@@ -24,6 +24,18 @@
         </div>
     </div>
 
+    <!-- Quick Actions -->
+    <div class="flex flex-wrap items-center gap-3">
+        <a href="{{ route('tenant.students.index') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold text-sm shadow-sm hover:border-indigo-300 hover:text-indigo-600 transition-colors">
+            <span>👥</span>
+            <span>{{ $isRtl ? 'طلبہ ڈائریکٹری' : 'Student Directory' }}</span>
+        </a>
+        <a href="{{ route('tenant.students.create') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white font-semibold text-sm shadow-sm hover:bg-indigo-700 transition-colors">
+            <span>➕</span>
+            <span>{{ $isRtl ? 'نیا داخلہ کریں' : 'New Student Admission' }}</span>
+        </a>
+    </div>
+
     <!-- Dynamic Metrics by Institute Model -->
     @if($tenant->isSchool())
         <!-- SCHOOL METRICS -->

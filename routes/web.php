@@ -29,3 +29,18 @@ Route::prefix('super-admin')->name('super-admin.')->group(function () {
     Route::get('/', [SuperAdminDashboardController::class, 'index'])->name('dashboard');
     Route::post('/tenants/{tenant}/toggle-status', [SuperAdminDashboardController::class, 'toggleStatus'])->name('tenants.toggle-status');
 });
+
+// Tenant Student Management
+Route::prefix('students')->name('tenant.students.')->group(function () {
+    Route::get('/', function () {
+        $tenant = app(TenantContext::class)->getTenant();
+        abort_unless($tenant, 404, 'Educational workspace not found');
+        return view('tenant.students.index', compact('tenant'));
+    })->name('index');
+
+    Route::get('/create', function () {
+        $tenant = app(TenantContext::class)->getTenant();
+        abort_unless($tenant, 404, 'Educational workspace not found');
+        return view('tenant.students.create', compact('tenant'));
+    })->name('create');
+});
