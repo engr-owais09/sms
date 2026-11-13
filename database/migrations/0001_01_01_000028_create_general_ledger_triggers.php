@@ -264,7 +264,7 @@ return new class extends Migration
                 FROM journal_entries 
                 WHERE id = NEW.journal_entry_id;
 
-                IF v_subledger = 'student_fee_advances' AND v_source_type NOT IN ('advance_receipt', 'advance_settlement', 'advance_refund', 'advance_reversal', 'reversal') THEN
+                IF v_subledger = 'student_fee_advances' AND v_source_type NOT IN ('advance_receipt', 'payment_receipt', 'advance_settlement', 'advance_refund', 'advance_reversal', 'reversal') THEN
                     RAISE EXCEPTION 'Account % (%) is a system-controlled sub-ledger account. Direct manual journal postings are prohibited.', 
                         v_account_code, v_subledger;
                 END IF;
