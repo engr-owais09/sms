@@ -69,6 +69,15 @@ class FinancialLockManager
         }
     }
 
+    public static function enterStudent(array|string $studentIds = []): void
+    {
+        if (empty($studentIds)) {
+            self::enterStage(self::STAGE_STUDENT, 'enterStudent');
+        } else {
+            self::lockStudents($studentIds);
+        }
+    }
+
     /**
      * Stage 3: Lock invoice(s) row(s) in deterministic order.
      */
@@ -85,6 +94,15 @@ class FinancialLockManager
                 ->orderBy('id', 'asc')
                 ->lockForUpdate()
                 ->pluck('id');
+        }
+    }
+
+    public static function enterInvoice(array|string $invoiceIds = []): void
+    {
+        if (empty($invoiceIds)) {
+            self::enterStage(self::STAGE_INVOICE, 'enterInvoice');
+        } else {
+            self::lockInvoices($invoiceIds);
         }
     }
 
@@ -107,6 +125,15 @@ class FinancialLockManager
         }
     }
 
+    public static function enterAdvance(array|string $advanceIds = []): void
+    {
+        if (empty($advanceIds)) {
+            self::enterStage(self::STAGE_ADVANCE, 'enterAdvance');
+        } else {
+            self::lockAdvances($advanceIds);
+        }
+    }
+
     /**
      * Stage 5: Lock student wallet(s) row(s).
      */
@@ -123,6 +150,15 @@ class FinancialLockManager
                 ->orderBy('id', 'asc')
                 ->lockForUpdate()
                 ->pluck('id');
+        }
+    }
+
+    public static function enterWallet(array|string $walletIds = []): void
+    {
+        if (empty($walletIds)) {
+            self::enterStage(self::STAGE_WALLET, 'enterWallet');
+        } else {
+            self::lockWallets($walletIds);
         }
     }
 
