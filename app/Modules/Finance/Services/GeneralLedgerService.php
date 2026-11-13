@@ -261,6 +261,7 @@ class GeneralLedgerService
             ['4040', 'Computer & Science Lab Charges', 'revenue', null, false],
             ['4050', 'Late Payment Surcharges', 'revenue', null, false],
             ['4090', 'Miscellaneous Revenue', 'revenue', null, false],
+            ['4098', 'Cash Overage Revenue', 'revenue', null, false],
             // Expenses (5000s)
             ['5010', 'Student Fee Discounts (Contra-Revenue)', 'expense', null, false],
             ['5020', 'Bad Debt Expense / Fee Waivers', 'expense', null, false],
