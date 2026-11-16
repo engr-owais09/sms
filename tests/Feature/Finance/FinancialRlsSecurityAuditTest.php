@@ -196,17 +196,33 @@ class FinancialRlsSecurityAuditTest extends TestCase
             $this->assertEmpty(DB::table('fee_invoices')->get());
 
             // Inserting with unset context must fail RLS WITH CHECK policy
-            $this->expectException(QueryException::class);
-            DB::table('fee_categories')->insert([
-                'id' => (string) \Illuminate\Support\Str::uuid(),
-                'tenant_id' => $this->tenantA->id,
-                'code' => 'ILLEGAL_CAT',
-                'name' => 'Illegal Category',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+            $injectionFailed = false;
+            DB::statement('SAVEPOINT rls_failclosed_test');
+            try {
+                DB::table('fee_categories')->insert([
+                    'id' => (string) \Illuminate\Support\Str::uuid(),
+                    'tenant_id' => $this->tenantA->id,
+                    'code' => 'ILLEGAL_CAT',
+                    'name' => 'Illegal Category',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            } catch (QueryException $e) {
+                DB::statement('ROLLBACK TO SAVEPOINT rls_failclosed_test');
+                $injectionFailed = true;
+                $this->assertStringContainsString('violates row-level security policy', $e->getMessage());
+            }
+
+            $this->assertTrue($injectionFailed, 'Insert with unset tenant context did not fail RLS.');
         } finally {
-            DB::statement('RESET ROLE');
+            try {
+                DB::statement('RESET ROLE');
+            } catch (\Throwable $e) {
+                if (DB::transactionLevel() > 0) {
+                    try { DB::rollBack(); } catch (\Throwable $t) {}
+                }
+                DB::statement('RESET ROLE');
+            }
         }
     }
 
@@ -270,6 +286,7 @@ class FinancialRlsSecurityAuditTest extends TestCase
 
             // 4. INSERT cross-tenant injection: Inserting with Tenant B id while authenticated as Tenant A fails RLS WITH CHECK
             $injectionFailed = false;
+            DB::statement('SAVEPOINT rls_injection_test');
             try {
                 DB::table('fee_categories')->insert([
                     'id' => (string) \Illuminate\Support\Str::uuid(),
@@ -280,13 +297,21 @@ class FinancialRlsSecurityAuditTest extends TestCase
                     'updated_at' => now(),
                 ]);
             } catch (QueryException $e) {
+                DB::statement('ROLLBACK TO SAVEPOINT rls_injection_test');
                 $injectionFailed = true;
                 $this->assertStringContainsString('violates row-level security policy', $e->getMessage());
             }
 
             $this->assertTrue($injectionFailed, "Cross-tenant insertion did not throw RLS violation exception.");
         } finally {
-            DB::statement('RESET ROLE');
+            try {
+                DB::statement('RESET ROLE');
+            } catch (\Throwable $e) {
+                if (DB::transactionLevel() > 0) {
+                    try { DB::rollBack(); } catch (\Throwable $t) {}
+                }
+                DB::statement('RESET ROLE');
+            }
         }
 
         // Verify Tenant B records were unaffected
