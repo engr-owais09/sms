@@ -44,3 +44,36 @@ Route::prefix('students')->name('tenant.students.')->group(function () {
         return view('tenant.students.create', compact('tenant'));
     })->name('create');
 });
+
+// Tenant Financial Management
+Route::prefix('finance')->name('tenant.finance.')->group(function () {
+    Route::get('/terminal', function () {
+        $tenant = app(TenantContext::class)->getTenant();
+        abort_unless($tenant, 404, 'Educational workspace not found');
+        return view('tenant.finance.terminal', compact('tenant'));
+    })->name('terminal');
+
+    Route::get('/shifts', function () {
+        $tenant = app(TenantContext::class)->getTenant();
+        abort_unless($tenant, 404, 'Educational workspace not found');
+        return view('tenant.finance.shifts', compact('tenant'));
+    })->name('shifts');
+
+    Route::get('/fee-structures', function () {
+        $tenant = app(TenantContext::class)->getTenant();
+        abort_unless($tenant, 404, 'Educational workspace not found');
+        return view('tenant.finance.fee-structures', compact('tenant'));
+    })->name('fee-structures');
+
+    Route::get('/vouchers', function () {
+        $tenant = app(TenantContext::class)->getTenant();
+        abort_unless($tenant, 404, 'Educational workspace not found');
+        return view('tenant.finance.vouchers', compact('tenant'));
+    })->name('vouchers');
+
+    Route::get('/ledger', function () {
+        $tenant = app(TenantContext::class)->getTenant();
+        abort_unless($tenant, 404, 'Educational workspace not found');
+        return view('tenant.finance.ledger', compact('tenant'));
+    })->name('ledger');
+});
