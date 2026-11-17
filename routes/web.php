@@ -77,3 +77,30 @@ Route::prefix('finance')->name('tenant.finance.')->group(function () {
         return view('tenant.finance.ledger', compact('tenant'));
     })->name('ledger');
 });
+
+// Tenant Attendance & Timetable Management
+Route::prefix('attendance')->name('tenant.attendance.')->group(function () {
+    Route::get('/timetable', function () {
+        $tenant = app(TenantContext::class)->getTenant();
+        abort_unless($tenant, 404, 'Educational workspace not found');
+        return view('tenant.attendance.timetable', compact('tenant'));
+    })->name('timetable');
+
+    Route::get('/register', function () {
+        $tenant = app(TenantContext::class)->getTenant();
+        abort_unless($tenant, 404, 'Educational workspace not found');
+        return view('tenant.attendance.register', compact('tenant'));
+    })->name('register');
+
+    Route::get('/leaves', function () {
+        $tenant = app(TenantContext::class)->getTenant();
+        abort_unless($tenant, 404, 'Educational workspace not found');
+        return view('tenant.attendance.leaves', compact('tenant'));
+    })->name('leaves');
+
+    Route::get('/analytics', function () {
+        $tenant = app(TenantContext::class)->getTenant();
+        abort_unless($tenant, 404, 'Educational workspace not found');
+        return view('tenant.attendance.analytics', compact('tenant'));
+    })->name('analytics');
+});
