@@ -25,13 +25,30 @@ class IdentifyTenantBySubdomain
                 abort(403, 'This educational workspace has been suspended. Please contact support.');
             }
 
-            // Set tenant in application singleton
+            // Enforce authenticated user belongs to this tenant (unless Super Admin)
+            if (auth()->check()) {
+                $user = auth()->user();
+                if (!$user->isSuperAdmin() && $user->tenant_id !== $tenant->id) {
+                    abort(403, 'You do not belong to this educational workspace.');
+                }
+            }
+
+            // Set tenant in application singleton and Spatie team context
             app(TenantContext::class)->setTenant($tenant);
+            setPermissionsTeamId($tenant->id);
+            if (auth()->check()) {
+                auth()->user()->unsetRelation('roles')->unsetRelation('permissions');
+            }
 
             // Set main branch if available
             $mainBranch = $tenant->branches()->where('is_main', true)->first();
             if ($mainBranch) {
                 app(TenantContext::class)->setBranch($mainBranch);
+            }
+        } else {
+            setPermissionsTeamId(null);
+            if (auth()->check()) {
+                auth()->user()->unsetRelation('roles')->unsetRelation('permissions');
             }
         }
 
@@ -43,6 +60,7 @@ class IdentifyTenantBySubdomain
      */
     public function terminate(Request $request, Response $response): void
     {
+        setPermissionsTeamId(null);
         PostgresTenantContext::reset();
         app(TenantContext::class)->clear();
     }

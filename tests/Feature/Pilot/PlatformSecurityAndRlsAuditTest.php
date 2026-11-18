@@ -5,6 +5,8 @@ namespace Tests\Feature\Pilot;
 use App\Modules\Institute\Models\Branch;
 use App\Modules\Institute\Models\Domain;
 use App\Modules\Institute\Models\Tenant;
+use App\Modules\Institute\Services\TenantProvisioningService;
+use Database\Seeders\RoleAndPermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -55,44 +57,51 @@ class PlatformSecurityAndRlsAuditTest extends TestCase
         );
     }
 
-    public function test_all_core_routes_enforce_tenancy_suspension_and_render_cleanly(): void
+    public function test_all_core_routes_enforce_tenancy_auth_rbac_and_suspension(): void
     {
         $this->withoutVite();
 
-        $tenant = Tenant::create([
+        (new RoleAndPermissionSeeder())->run();
+        $superAdmin = \App\Models\User::where('email', 'superadmin@educore.test')->firstOrFail();
+
+        $provisioned = (new TenantProvisioningService())->provision([
             'name' => 'Pilot Grammar School',
             'slug' => 'pilot-school',
             'type' => 'school',
-            'status' => 'active',
-        ]);
-
-        Branch::create([
-            'tenant_id' => $tenant->id,
-            'name' => 'Main Campus',
-            'code' => 'PG-MAIN',
+            'owner_name' => 'Pilot Owner',
+            'owner_email' => 'owner@pilot.test',
+            'owner_password' => 'Secret123!',
+            'branch_name' => 'Main Campus',
             'city' => 'Lahore',
-            'is_main' => true,
         ]);
+        $tenant = $provisioned['tenant'];
+        $owner = $provisioned['owner'];
 
-        Domain::create([
-            'tenant_id' => $tenant->id,
-            'domain' => 'pilot-school.localhost',
-            'is_primary' => true,
-        ]);
+        Domain::firstOrCreate(
+            ['domain' => 'pilot-school.localhost'],
+            ['tenant_id' => $tenant->id, 'is_primary' => true, 'is_verified' => true]
+        );
 
-        // Central Super Admin & Onboarding routes
-        $this->get('http://localhost/onboarding')->assertStatus(200);
-        $this->get('http://localhost/super-admin')->assertStatus(200);
-        $this->get('http://localhost/super-admin/plans')->assertStatus(200);
-        $this->get('http://localhost/super-admin/billing')->assertStatus(200);
+        // 1. Unauthenticated guests are redirected to login on protected routes
+        $this->get('http://localhost/super-admin')->assertRedirect('/login');
+        $this->get('http://pilot-school.localhost/finance/terminal')->assertRedirect('/login');
 
-        // Fail-closed 404 when no tenant domain resolves
+        // 2. Fail-closed 404 when no tenant domain resolves on tenant-prefixed routes
         $this->get('http://localhost/students')->assertStatus(404);
         $this->get('http://localhost/finance/terminal')->assertStatus(404);
         $this->get('http://localhost/attendance/register')->assertStatus(404);
         $this->get('http://localhost/exams/results')->assertStatus(404);
 
-        // All Tenant Workspace routes resolve cleanly on mapped tenant domain
+        // 3. Central Super Admin & Onboarding routes resolve cleanly for authenticated Super Admin
+        $this->get('http://localhost/onboarding')->assertStatus(200);
+        $this->actingAs($superAdmin)->get('http://localhost/super-admin')->assertStatus(200);
+        $this->actingAs($superAdmin)->get('http://localhost/super-admin/plans')->assertStatus(200);
+        $this->actingAs($superAdmin)->get('http://localhost/super-admin/billing')->assertStatus(200);
+
+        // Tenant owner CANNOT access Super Admin control plane (403)
+        $this->actingAs($owner)->get('http://localhost/super-admin')->assertStatus(403);
+
+        // 4. All Tenant Workspace routes resolve cleanly for authenticated Tenant Owner
         $tenantRoutes = [
             'http://pilot-school.localhost/',
             'http://pilot-school.localhost/students',
@@ -112,11 +121,11 @@ class PlatformSecurityAndRlsAuditTest extends TestCase
         ];
 
         foreach ($tenantRoutes as $url) {
-            $this->get($url)->assertStatus(200);
+            $this->actingAs($owner)->get($url)->assertStatus(200);
         }
 
-        // Suspended tenant must be blocked with HTTP 403
+        // 5. Suspended tenant must be blocked with HTTP 403
         $tenant->update(['status' => 'suspended']);
-        $this->get('http://pilot-school.localhost/finance/terminal')->assertStatus(403);
+        $this->actingAs($owner)->get('http://pilot-school.localhost/finance/terminal')->assertStatus(403);
     }
 }

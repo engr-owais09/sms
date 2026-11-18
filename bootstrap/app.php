@@ -20,10 +20,20 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->alias([
+            'tenant' => \App\Core\Tenancy\Middleware\RequireTenantWorkspace::class,
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
         ]);
+
+        $middleware->prependToPriorityList(
+            \Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests::class,
+            \App\Core\Tenancy\Middleware\RequireTenantWorkspace::class,
+        );
+        $middleware->prependToPriorityList(
+            \App\Core\Tenancy\Middleware\RequireTenantWorkspace::class,
+            \App\Core\Tenancy\Middleware\IdentifyTenantBySubdomain::class,
+        );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

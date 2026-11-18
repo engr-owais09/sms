@@ -57,6 +57,7 @@
                         <th class="py-3 px-4 text-right">%</th>
                         <th class="py-3 px-4 text-center">Grade</th>
                         <th class="py-3 px-4 text-center">Status</th>
+                        <th class="py-3 px-4 text-center">Report Card</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -73,10 +74,14 @@
                                     {{ $res->result_status }}
                                 </span>
                             </td>
+                            <td class="py-2.5 px-4 text-center space-x-1">
+                                <a href="{{ route('tenant.exams.report-card', $res) }}" target="_blank" class="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 rounded text-[10px] font-semibold">🖨️ View</a>
+                                <a href="{{ route('tenant.exams.report-card', ['result' => $res, 'format' => 'pdf']) }}" target="_blank" class="px-2 py-0.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded text-[10px] font-semibold">PDF</a>
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="py-8 text-center text-slate-400">No results tabulated yet. Click "Tabulate & Publish Results".</td>
+                            <td colspan="8" class="py-8 text-center text-slate-400">No results tabulated yet. Click "Tabulate & Publish Results".</td>
                         </tr>
                     @endforelse
                 </tbody>

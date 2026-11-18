@@ -13,10 +13,18 @@
             </p>
         </div>
 
-        <a href="{{ route('onboarding.index') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-700 shadow-sm transition-all">
-            <span>+</span>
-            <span>{{ $isRtl ? 'نیا ادارہ شامل کریں' : 'Onboard New Institute' }}</span>
-        </a>
+        <div class="flex flex-wrap items-center gap-2">
+            <a href="{{ route('super-admin.plans') }}" class="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-white border border-slate-200 text-slate-700 font-semibold text-xs hover:border-indigo-300 hover:text-indigo-600 shadow-sm">
+                📦 {{ $isRtl ? 'سبسکرپشن پلانز' : 'Subscription Plans' }}
+            </a>
+            <a href="{{ route('super-admin.billing') }}" class="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-white border border-slate-200 text-slate-700 font-semibold text-xs hover:border-indigo-300 hover:text-indigo-600 shadow-sm">
+                💳 {{ $isRtl ? 'بلنگ اور ادائیگیاں' : 'Tenant Billing' }}
+            </a>
+            <a href="{{ route('onboarding.index') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-700 shadow-sm transition-all">
+                <span>+</span>
+                <span>{{ $isRtl ? 'نیا ادارہ شامل کریں' : 'Onboard New Institute' }}</span>
+            </a>
+        </div>
     </div>
 
     <!-- Metrics Grid -->

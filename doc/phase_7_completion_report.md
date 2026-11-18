@@ -3,7 +3,7 @@
 **Framework:** Laravel 13.40.0 on PHP 8.3.15  
 **Database:** PostgreSQL 16.10 with Native Row-Level Security (RLS)  
 **Date:** November 2026  
-**Status:** COMPLETED & VERIFIED (138/138 Project Tests Passing, 864 Assertions — 100%)  
+**Status:** COMPLETED & VERIFIED (140/140 Project Tests Passing, 890 Assertions — 100%)  
 
 ---
 
@@ -33,6 +33,14 @@ Exercised a full School tenant workflow seamlessly spanning Phases 1–6 in a si
 
 ---
 
-## 3. Master Platform Verification Totals
+## 3. Release Hardening (Auth, Tenant RBAC, Dashboards, PDF Print Endpoints & Vite Build)
+- **Authentication & Tenant-Scoped RBAC:** Added `LoginController` (`/login`, `/logout`), `RequireTenantWorkspace` middleware (prioritized before `AuthenticatesRequests`), Spatie `setPermissionsTeamId($tenant->id)` team context syncing in `IdentifyTenantBySubdomain` + `TenantProvisioningService`, and `auth` + `permission:...` enforcement across `/super-admin/*`, `/students/*`, `/finance/*`, `/attendance/*`, and `/exams/*`.
+- **Dashboard & Header Navigation:** Added global navigation controls in `layouts/app.blade.php`, full module quick-links in `tenant/dashboard.blade.php`, and Plans/Billing shortcuts in `super-admin/dashboard.blade.php`.
+- **Production PDF & Print Endpoints (`PdfReportService`):** Wired 3-copy A4 Urdu/English fee vouchers (`/finance/vouchers/{invoice}/print`), 80mm thermal receipts (`/finance/payments/{payment}/receipt`), and bilingual report cards (`/exams/report-card/{result}`), with live buttons across `CashierTerminal`, `VoucherGenerationConsole`, and `ResultTabulationPortal`.
+- **Vite Frontend Build:** Built `public/build/manifest.json` & CSS/JS assets cleanly via `npm run build`.
+
+---
+
+## 4. Master Platform Verification Totals
 - **Total Database Migrations:** `000000` through `000050` (51 migrations cleanly applied & rollback-verified).
-- **Full Regression Suite (`php artisan test`):** **138 / 138 tests passing (864 assertions)**.
+- **Full Regression Suite (`php artisan test`):** **140 / 140 tests passing (890 assertions)**.

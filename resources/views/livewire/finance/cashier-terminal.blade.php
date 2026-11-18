@@ -33,9 +33,12 @@
             </div>
             @if($lastPayment)
                 <div class="flex items-center gap-2">
-                    <button type="button" class="px-3 py-1 bg-white border border-emerald-400 text-emerald-700 text-xs font-medium rounded hover:bg-emerald-50 shadow-sm" onclick="window.print()">
+                    <a href="{{ route('tenant.finance.receipt-print', $lastPayment) }}" target="_blank" class="px-3 py-1 bg-white border border-emerald-400 text-emerald-700 text-xs font-medium rounded hover:bg-emerald-50 shadow-sm">
                         🖨️ {{ $isRtl ? '80 ملی میٹر رسید' : 'Thermal 80mm' }}
-                    </button>
+                    </a>
+                    <a href="{{ route('tenant.finance.receipt-print', ['payment' => $lastPayment, 'format' => 'pdf']) }}" target="_blank" class="px-3 py-1 bg-emerald-700 text-white text-xs font-medium rounded hover:bg-emerald-800 shadow-sm">
+                        📄 {{ $isRtl ? 'PDF ڈاؤنلوڈ' : 'Download PDF' }}
+                    </a>
                 </div>
             @endif
         </div>

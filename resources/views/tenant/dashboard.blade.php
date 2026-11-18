@@ -32,7 +32,55 @@
         </a>
         <a href="{{ route('tenant.students.create') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white font-semibold text-sm shadow-sm hover:bg-indigo-700 transition-colors">
             <span>➕</span>
-            <span>{{ $isRtl ? 'نیا داخلہ کریں' : 'New Student Admission' }}</span>
+            <span>{{ $isRtl ? 'نیا داخلہ کریں' : 'New Admission' }}</span>
+        </a>
+        <a href="{{ route('tenant.finance.terminal') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 text-white font-semibold text-sm shadow-sm hover:bg-emerald-700 transition-colors">
+            <span>💰</span>
+            <span>{{ $isRtl ? 'فیس کاؤنٹر POS' : 'Cashier POS' }}</span>
+        </a>
+        <a href="{{ route('tenant.finance.shifts') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold text-sm shadow-sm hover:border-indigo-300 hover:text-indigo-600 transition-colors">
+            <span>🔒</span>
+            <span>{{ $isRtl ? 'کیشیر شفٹ' : 'Shifts' }}</span>
+        </a>
+        <a href="{{ route('tenant.finance.fee-structures') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold text-sm shadow-sm hover:border-indigo-300 hover:text-indigo-600 transition-colors">
+            <span>🏷️</span>
+            <span>{{ $isRtl ? 'فیس اسٹرکچر' : 'Fee Structures' }}</span>
+        </a>
+        <a href="{{ route('tenant.finance.vouchers') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold text-sm shadow-sm hover:border-indigo-300 hover:text-indigo-600 transition-colors">
+            <span>🧾</span>
+            <span>{{ $isRtl ? 'ماہانہ واؤچرز' : 'Vouchers' }}</span>
+        </a>
+        <a href="{{ route('tenant.finance.ledger') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold text-sm shadow-sm hover:border-indigo-300 hover:text-indigo-600 transition-colors">
+            <span>📊</span>
+            <span>{{ $isRtl ? 'جنرل لیجر' : 'Ledger & Defaulters' }}</span>
+        </a>
+        <a href="{{ route('tenant.attendance.timetable') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold text-sm shadow-sm hover:border-indigo-300 hover:text-indigo-600 transition-colors">
+            <span>🗓️</span>
+            <span>{{ $isRtl ? 'ٹائم ٹیبل' : 'Timetable' }}</span>
+        </a>
+        <a href="{{ route('tenant.attendance.register') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold text-sm shadow-sm hover:border-indigo-300 hover:text-indigo-600 transition-colors">
+            <span>✅</span>
+            <span>{{ $isRtl ? 'حاضری رجسٹر' : 'Roll Call' }}</span>
+        </a>
+        <a href="{{ route('tenant.attendance.leaves') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold text-sm shadow-sm hover:border-indigo-300 hover:text-indigo-600 transition-colors">
+            <span>📝</span>
+            <span>{{ $isRtl ? 'رخصت منظوری' : 'Leaves' }}</span>
+        </a>
+        <a href="{{ route('tenant.attendance.analytics') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold text-sm shadow-sm hover:border-indigo-300 hover:text-indigo-600 transition-colors">
+            <span>📈</span>
+            <span>{{ $isRtl ? 'حاضری تجزیہ' : 'Attendance Analytics' }}</span>
+        </a>
+        <a href="{{ route('tenant.exams.schedules') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold text-sm shadow-sm hover:border-indigo-300 hover:text-indigo-600 transition-colors">
+            <span>📅</span>
+            <span>{{ $isRtl ? 'ڈیٹ شیٹ' : 'Exam Schedules' }}</span>
+        </a>
+        <a href="{{ route('tenant.exams.marks') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold text-sm shadow-sm hover:border-indigo-300 hover:text-indigo-600 transition-colors">
+            <span>✍️</span>
+            <span>{{ $isRtl ? 'نمبرات اندراج' : 'Marks Entry' }}</span>
+        </a>
+        <a href="{{ route('tenant.exams.results') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold text-sm shadow-sm hover:border-indigo-300 hover:text-indigo-600 transition-colors">
+            <span>🎓</span>
+            <span>{{ $isRtl ? 'نتائج اور رزلٹ کارڈ' : 'Results & Report Cards' }}</span>
         </a>
     </div>
 

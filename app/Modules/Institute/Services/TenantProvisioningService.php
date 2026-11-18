@@ -132,6 +132,7 @@ class TenantProvisioningService
             }
 
             $ownerRole->syncPermissions($tenantPermissions);
+            setPermissionsTeamId($tenant->id);
             $owner->assignRole($ownerRole);
 
             return [

@@ -46,6 +46,23 @@
                 @endif
             </div>
 
+            <!-- Primary Navigation -->
+            @auth
+                <nav class="hidden md:flex items-center gap-4 text-xs font-semibold text-slate-600">
+                    @if(isset($tenant))
+                        <a href="{{ route('tenant.students.index') }}" class="hover:text-indigo-600">Students</a>
+                        <a href="{{ route('tenant.finance.terminal') }}" class="hover:text-indigo-600">Finance POS</a>
+                        <a href="{{ route('tenant.finance.ledger') }}" class="hover:text-indigo-600">Ledger</a>
+                        <a href="{{ route('tenant.attendance.register') }}" class="hover:text-indigo-600">Attendance</a>
+                        <a href="{{ route('tenant.exams.results') }}" class="hover:text-indigo-600">Exams</a>
+                    @elseif(auth()->user()->isSuperAdmin())
+                        <a href="{{ route('super-admin.dashboard') }}" class="hover:text-indigo-600">Tenants</a>
+                        <a href="{{ route('super-admin.plans') }}" class="hover:text-indigo-600">Plans</a>
+                        <a href="{{ route('super-admin.billing') }}" class="hover:text-indigo-600">Billing</a>
+                    @endif
+                </nav>
+            @endauth
+
             <!-- Language & Profile Controls -->
             <div class="flex items-center gap-4">
                 <!-- Bilingual Switcher -->
@@ -59,9 +76,19 @@
                 </div>
 
                 @auth
-                    <div class="flex items-center gap-2 text-sm text-slate-600">
-                        <span>{{ auth()->user()->name }}</span>
+                    <div class="flex items-center gap-3 text-xs text-slate-600">
+                        <span class="font-semibold text-slate-800">{{ auth()->user()->name }}</span>
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit" class="px-2.5 py-1 rounded bg-slate-100 hover:bg-rose-50 hover:text-rose-700 font-semibold transition">
+                                {{ ($currentLocale ?? 'en') === 'ur' ? 'لاگ آؤٹ' : 'Logout' }}
+                            </button>
+                        </form>
                     </div>
+                @else
+                    <a href="{{ route('login') }}" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold">
+                        {{ ($currentLocale ?? 'en') === 'ur' ? 'لاگ ان' : 'Sign In' }}
+                    </a>
                 @endauth
             </div>
         </div>

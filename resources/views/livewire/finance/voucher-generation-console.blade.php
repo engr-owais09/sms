@@ -108,6 +108,7 @@
                             <th class="py-3 px-4">Due Date</th>
                             <th class="py-3 px-4 text-right">Amount</th>
                             <th class="py-3 px-4 text-center">Status</th>
+                            <th class="py-3 px-4 text-center">Print</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
@@ -123,10 +124,14 @@
                                         {{ $inv->status }}
                                     </span>
                                 </td>
+                                <td class="py-2.5 px-4 text-center space-x-1">
+                                    <a href="{{ route('tenant.finance.voucher-print', $inv) }}" target="_blank" class="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 rounded text-[10px] font-semibold">🖨️ 3-Copy</a>
+                                    <a href="{{ route('tenant.finance.voucher-print', ['invoice' => $inv, 'format' => 'pdf']) }}" target="_blank" class="px-2 py-0.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded text-[10px] font-semibold">PDF</a>
+                                </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="py-8 text-center text-slate-400">
+                                <td colspan="7" class="py-8 text-center text-slate-400">
                                     {{ $isRtl ? 'کوئی واؤچر تیار نہیں ہے۔' : 'No invoices generated yet.' }}
                                 </td>
                             </tr>

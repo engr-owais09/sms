@@ -36,6 +36,7 @@ class SeedPilotDemoCommand extends Command
         }
 
         (new SubscriptionPlanService())->seedDefaultPlans();
+        (new \Database\Seeders\RoleAndPermissionSeeder())->run();
         $growthPlan = SubscriptionPlan::where('code', 'growth')->firstOrFail();
 
         $tenant = Tenant::firstOrCreate(
@@ -105,10 +106,33 @@ class SeedPilotDemoCommand extends Command
             ['label' => 'Period 1', 'start_time' => '08:00:00', 'end_time' => '08:45:00', 'is_break' => false]
         );
 
-        User::firstOrCreate(
+        $pilotAdmin = User::firstOrCreate(
             ['email' => 'pilot.admin@educore.pk'],
-            ['name' => 'Pilot Principal', 'password' => bcrypt('password')]
+            [
+                'tenant_id' => $tenant->id,
+                'branch_id' => $branch->id,
+                'name' => 'Pilot Principal',
+                'password' => bcrypt('password'),
+                'status' => 'active',
+            ]
         );
+
+        $ownerRole = \Spatie\Permission\Models\Role::firstOrCreate([
+            'name' => 'institute_owner',
+            'guard_name' => 'web',
+            'tenant_id' => $tenant->id,
+        ]);
+        $tenantPermissions = [
+            'institute.view_settings', 'institute.edit_settings', 'branch.manage', 'academics.manage',
+            'students.view', 'students.create', 'students.edit', 'students.delete',
+            'attendance.mark', 'attendance.view',
+            'finance.view_vouchers', 'finance.collect_fee', 'finance.manage_structures', 'finance.cashier_closing',
+            'exams.manage', 'exams.enter_marks', 'reports.view',
+        ];
+        $ownerRole->syncPermissions($tenantPermissions);
+        setPermissionsTeamId($tenant->id);
+        $pilotAdmin->assignRole($ownerRole);
+        setPermissionsTeamId(null);
 
         if (!Student::withoutGlobalScopes()->where('tenant_id', $tenant->id)->exists()) {
             (new StudentAdmissionService())->admitToSchool([
