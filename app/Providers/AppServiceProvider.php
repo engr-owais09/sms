@@ -15,6 +15,9 @@ use App\Modules\Finance\Livewire\CashierTerminal;
 use App\Modules\Finance\Livewire\FeeStructureManager;
 use App\Modules\Finance\Livewire\GeneralLedgerExplorer;
 use App\Modules\Finance\Livewire\VoucherGenerationConsole;
+use App\Modules\Onboarding\Livewire\OnboardingWizard;
+use App\Modules\Student\Livewire\StudentAdmissionForm;
+use App\Modules\Student\Livewire\StudentDirectory;
 use App\Modules\SuperAdmin\Livewire\SubscriptionPlanManager;
 use App\Modules\SuperAdmin\Livewire\TenantBillingConsole;
 use Illuminate\Support\ServiceProvider;
@@ -54,5 +57,9 @@ class AppServiceProvider extends ServiceProvider
 
         Livewire::component('super-admin.subscription-plan-manager', SubscriptionPlanManager::class);
         Livewire::component('super-admin.tenant-billing-console', TenantBillingConsole::class);
+
+        Livewire::component('onboarding-wizard', OnboardingWizard::class);
+        Livewire::component('student-directory', StudentDirectory::class);
+        Livewire::component('student-admission-form', StudentAdmissionForm::class);
     }
 }
