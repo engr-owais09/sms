@@ -28,6 +28,8 @@ Route::get('/onboarding', function () {
 Route::prefix('super-admin')->name('super-admin.')->group(function () {
     Route::get('/', [SuperAdminDashboardController::class, 'index'])->name('dashboard');
     Route::post('/tenants/{tenant}/toggle-status', [SuperAdminDashboardController::class, 'toggleStatus'])->name('tenants.toggle-status');
+    Route::view('/plans', 'super-admin.plans')->name('plans');
+    Route::view('/billing', 'super-admin.billing')->name('billing');
 });
 
 // Tenant Student Management

@@ -15,6 +15,8 @@ use App\Modules\Finance\Livewire\CashierTerminal;
 use App\Modules\Finance\Livewire\FeeStructureManager;
 use App\Modules\Finance\Livewire\GeneralLedgerExplorer;
 use App\Modules\Finance\Livewire\VoucherGenerationConsole;
+use App\Modules\SuperAdmin\Livewire\SubscriptionPlanManager;
+use App\Modules\SuperAdmin\Livewire\TenantBillingConsole;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
 
@@ -49,5 +51,8 @@ class AppServiceProvider extends ServiceProvider
         Livewire::component('exam.exam-schedule-manager', ExamScheduleManager::class);
         Livewire::component('exam.marks-entry-console', MarksEntryConsole::class);
         Livewire::component('exam.result-tabulation-portal', ResultTabulationPortal::class);
+
+        Livewire::component('super-admin.subscription-plan-manager', SubscriptionPlanManager::class);
+        Livewire::component('super-admin.tenant-billing-console', TenantBillingConsole::class);
     }
 }
