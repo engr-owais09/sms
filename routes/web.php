@@ -104,3 +104,41 @@ Route::prefix('attendance')->name('tenant.attendance.')->group(function () {
         return view('tenant.attendance.analytics', compact('tenant'));
     })->name('analytics');
 });
+
+// Tenant Examinations & Report Cards
+Route::prefix('exams')->name('tenant.exams.')->group(function () {
+    Route::get('/schedules', function () {
+        $tenant = app(TenantContext::class)->getTenant();
+        abort_unless($tenant, 404, 'Educational workspace not found');
+        return view('tenant.exam.schedules', compact('tenant'));
+    })->name('schedules');
+
+    Route::get('/marks', function () {
+        $tenant = app(TenantContext::class)->getTenant();
+        abort_unless($tenant, 404, 'Educational workspace not found');
+        return view('tenant.exam.marks', compact('tenant'));
+    })->name('marks');
+
+    Route::get('/results', function () {
+        $tenant = app(TenantContext::class)->getTenant();
+        abort_unless($tenant, 404, 'Educational workspace not found');
+        return view('tenant.exam.results', compact('tenant'));
+    })->name('results');
+
+    Route::get('/report-card/{result}', function (\App\Modules\Exam\Models\ExamResult $result) {
+        $tenant = app(TenantContext::class)->getTenant();
+        abort_unless($tenant, 404, 'Educational workspace not found');
+        $result->load(['student', 'section.schoolClass', 'examTerm']);
+        $marks = \App\Modules\Exam\Models\ExamMark::with('paper.subject')
+            ->where('student_id', $result->student_id)
+            ->whereHas('paper', fn ($q) => $q->where('exam_term_id', $result->exam_term_id))
+            ->get();
+
+        return view('reports.bilingual-report-card', [
+            'tenant' => $tenant,
+            'result' => $result,
+            'marks' => $marks,
+            'isRtl' => app()->getLocale() === 'ur',
+        ]);
+    })->name('report-card');
+});

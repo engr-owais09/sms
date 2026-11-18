@@ -7,6 +7,9 @@ use App\Modules\Attendance\Livewire\AttendanceAnalyticsReport;
 use App\Modules\Attendance\Livewire\LeaveApprovalConsole;
 use App\Modules\Attendance\Livewire\RollCallRegister;
 use App\Modules\Attendance\Livewire\TimetableBuilder;
+use App\Modules\Exam\Livewire\ExamScheduleManager;
+use App\Modules\Exam\Livewire\MarksEntryConsole;
+use App\Modules\Exam\Livewire\ResultTabulationPortal;
 use App\Modules\Finance\Livewire\CashierShiftManager;
 use App\Modules\Finance\Livewire\CashierTerminal;
 use App\Modules\Finance\Livewire\FeeStructureManager;
@@ -42,5 +45,9 @@ class AppServiceProvider extends ServiceProvider
         Livewire::component('attendance.roll-call-register', RollCallRegister::class);
         Livewire::component('attendance.leave-approval-console', LeaveApprovalConsole::class);
         Livewire::component('attendance.attendance-analytics-report', AttendanceAnalyticsReport::class);
+
+        Livewire::component('exam.exam-schedule-manager', ExamScheduleManager::class);
+        Livewire::component('exam.marks-entry-console', MarksEntryConsole::class);
+        Livewire::component('exam.result-tabulation-portal', ResultTabulationPortal::class);
     }
 }
