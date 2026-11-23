@@ -305,9 +305,9 @@ Legend: `[ ]` open · `[~]` in progress · `[x]` done (with evidence in changelo
 **Phase R4** — [x] R4.1 · [x] R4.2 · [x] R4.3 · [ ] R4.4 · [ ] R4.5 · [ ] R4.6 · [x] R4.7 · [!] R4.8  → **Gate B:** [~]  
 **Phase R5** — [x] R5.1 · [x] R5.2 · [x] R5.3 · [x] R5.4 · [x] R5.5 · [x] R5.6 · [x] R5.7 · [!] R5.8  
 **Phase R6** — [x] R6.1 · [x] R6.2 · [x] R6.3 · [x] R6.4 · [x] R6.5 · [x] R6.6  → **Gate C:** [~]  
-**Phase R7** — [ ] R7.1 · [ ] R7.2 · [ ] R7.3 · [ ] R7.4 · [ ] R7.5 · [ ] R7.6 · [ ] R7.7  
-**Phase R8** — [ ] R8.1 · [ ] R8.2 · [ ] R8.3 · [ ] R8.4 · [ ] R8.5 · [ ] R8.6 · [ ] R8.7 · [ ] R8.8  
-**Phase R9** — [ ] R9.1 · [ ] R9.2 · [ ] R9.3 · [ ] R9.4 · [ ] R9.5 · [ ] R9.6  → **Gate D:** [ ]
+**Phase R7** — [x] R7.1 · [x] R7.2 · [x] R7.3 · [x] R7.4 · [x] R7.5 · [x] R7.6 · [!] R7.7  
+**Phase R8** — [x] R8.1 · [x] R8.2 · [x] R8.3 · [x] R8.4 · [~] R8.5 · [x] R8.6 · [x] R8.7 · [x] R8.8  
+**Phase R9** — [!] R9.1 · [!] R9.2 · [!] R9.3 · [!] R9.4 · [!] R9.5 · [!] R9.6  → **Gate D:** [~]
 
 **Next task the agent will pick: `R0.1`** (then R0.2 → R0.5 → R1.1 …).
 

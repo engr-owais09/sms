@@ -1,5 +1,10 @@
+@php
+    $uiTheme = session('ui_theme', 'light');
+    $rawColor = isset($tenant) ? ($tenant->settings['primary_color'] ?? '#4f46e5') : '#4f46e5';
+    $brandPrimary = preg_match('/^#[0-9A-Fa-f]{6}$/', (string) $rawColor) ? $rawColor : '#4f46e5';
+@endphp
 <!DOCTYPE html>
-<html lang="{{ $currentLocale ?? 'en' }}" dir="{{ $currentDirection ?? 'ltr' }}" class="h-full bg-slate-50">
+<html lang="{{ $currentLocale ?? 'en' }}" dir="{{ $currentDirection ?? 'ltr' }}" data-theme="{{ $uiTheme }}" class="h-full bg-slate-50">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -14,6 +19,9 @@
 
     <!-- Styles & Scripts -->
     <style>
+        :root {
+            --brand-primary: {{ $brandPrimary }};
+        }
         [dir="rtl"] {
             font-family: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', 'Segoe UI', Tahoma, sans-serif;
             letter-spacing: 0;
@@ -22,12 +30,26 @@
         [dir="ltr"] {
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
         }
+        [data-theme="dark"] body {
+            background-color: #0f172a;
+            color: #e2e8f0;
+        }
+        [data-theme="dark"] header,
+        [data-theme="dark"] footer,
+        [data-theme="dark"] .bg-white {
+            background-color: #1e293b !important;
+            border-color: #334155 !important;
+            color: #e2e8f0 !important;
+        }
     </style>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 </head>
 <body class="h-full text-slate-800 antialiased flex flex-col justify-between overflow-x-hidden">
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:start-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-indigo-600 focus:text-white focus:rounded-lg focus:text-xs focus:font-bold">
+        Skip to main content
+    </a>
     <!-- Top Global Header -->
     <header class="bg-white border-b border-slate-200 sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 min-h-16 py-2 flex items-center justify-between gap-2">
@@ -83,6 +105,9 @@
 
             <!-- Language & Profile Controls -->
             <div class="flex items-center gap-2 sm:gap-4 shrink-0">
+                <a href="?theme={{ $uiTheme === 'dark' ? 'light' : 'dark' }}" class="px-2 py-1 rounded-lg bg-slate-100 text-xs font-semibold text-slate-700 hover:bg-slate-200" aria-label="Toggle dark mode">
+                    {{ $uiTheme === 'dark' ? '☀️' : '🌙' }}
+                </a>
                 <!-- Bilingual Switcher -->
                 <div class="flex items-center bg-slate-100 rounded-lg p-1 text-xs font-semibold" role="group" aria-label="{{ __('sms.nav.language') }}">
                     <a href="?lang=en" class="px-2 py-1 rounded {{ ($currentLocale ?? 'en') === 'en' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-900' }}">
@@ -167,7 +192,7 @@
     @endauth
 
     <!-- Main Content Container -->
-    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <main id="main-content" class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {{ $slot ?? '' }}
         @yield('content')
     </main>

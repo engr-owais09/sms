@@ -4,6 +4,7 @@ use App\Core\Localization\Middleware\SetLocaleAndDirection;
 use App\Core\Tenancy\Middleware\IdentifyTenantBySubdomain;
 use App\Http\Middleware\EnforceIdleSessionTimeout;
 use App\Http\Middleware\EnforcePasswordChangeMiddleware;
+use App\Http\Middleware\RequestContextMiddleware;
 use App\Http\Middleware\SecurityHeadersMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -23,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->web(append: [
             IdentifyTenantBySubdomain::class,
+            RequestContextMiddleware::class,
             SetLocaleAndDirection::class,
             EnforceIdleSessionTimeout::class,
             EnforcePasswordChangeMiddleware::class,

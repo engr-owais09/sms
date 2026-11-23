@@ -6,6 +6,7 @@ use App\Core\Tenancy\TenantContext;
 use App\Http\Controllers\Auth\AccountSecurityController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\TwoFactorChallengeController;
+use App\Http\Controllers\HealthController;
 use App\Modules\Finance\Controllers\PaymentWebhookController;
 use App\Modules\Institute\Controllers\BulkDataController;
 use App\Modules\Institute\Controllers\PortalController;
@@ -271,6 +272,8 @@ Route::prefix('notices')
         Route::get('/', [PortalController::class, 'noticesIndex'])->name('index');
         Route::post('/', [PortalController::class, 'publishNotice'])->name('store');
     });
+
+Route::get('/health', HealthController::class)->name('health');
 
 Route::post('/webhooks/payments/{provider}', [PaymentWebhookController::class, 'handle'])
     ->middleware('throttle:120,1')
