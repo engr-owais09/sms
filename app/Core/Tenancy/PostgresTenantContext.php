@@ -10,8 +10,9 @@ class PostgresTenantContext
     /**
      * Sets the tenant context safely within the active database connection/transaction.
      * When is_local = true, PostgreSQL automatically reverts the setting at COMMIT or ROLLBACK.
+     * When is_local = false, the setting persists across statements on the connection until reset() is called.
      */
-    public static function set(string $tenantId, ?string $connection = null): void
+    public static function set(string $tenantId, ?string $connection = null, ?bool $isLocal = null): void
     {
         $conn = DB::connection($connection);
 
@@ -19,10 +20,12 @@ class PostgresTenantContext
             return;
         }
 
+        $localFlag = $isLocal ?? ($conn->transactionLevel() > 0);
+
         try {
             $conn->statement(
-                "SELECT set_config('app.current_tenant_id', ?, true)",
-                [$tenantId]
+                "SELECT set_config('app.current_tenant_id', ?, ?)",
+                [$tenantId, $localFlag]
             );
         } catch (Throwable $e) {
             report($e);
@@ -43,7 +46,7 @@ class PostgresTenantContext
 
         try {
             $conn->statement(
-                "SELECT set_config('app.current_tenant_id', '', true)"
+                "SELECT set_config('app.current_tenant_id', '', false)"
             );
         } catch (Throwable $e) {
             report($e);

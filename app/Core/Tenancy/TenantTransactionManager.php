@@ -27,7 +27,7 @@ class TenantTransactionManager
         }
 
         return DB::connection($connection)->transaction(function () use ($tenantId, $callback, $connection) {
-            PostgresTenantContext::set($tenantId, $connection);
+            PostgresTenantContext::set($tenantId, $connection, true);
 
             return $callback();
         });

@@ -49,12 +49,17 @@ class Tenant extends Model
 
     public function isSchool(): bool
     {
-        return $this->type === 'school';
+        return in_array($this->type, ['school', 'hybrid', 'both'], true);
     }
 
     public function isAcademy(): bool
     {
-        return $this->type === 'academy';
+        return in_array($this->type, ['academy', 'hybrid', 'both'], true);
+    }
+
+    public function isHybrid(): bool
+    {
+        return in_array($this->type, ['hybrid', 'both'], true);
     }
 
     public function isActive(): bool

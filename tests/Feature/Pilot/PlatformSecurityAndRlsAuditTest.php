@@ -62,7 +62,15 @@ class PlatformSecurityAndRlsAuditTest extends TestCase
         $this->withoutVite();
 
         (new RoleAndPermissionSeeder())->run();
-        $superAdmin = \App\Models\User::where('email', 'superadmin@educore.test')->firstOrFail();
+        $superAdmin = \App\Models\User::factory()->create([
+            'email' => 'superadmin@educore.test',
+            'is_super_admin' => true,
+            'tenant_id' => null,
+            'branch_id' => null,
+            'status' => 'active',
+        ]);
+        setPermissionsTeamId(null);
+        $superAdmin->assignRole('super_admin');
 
         $provisioned = (new TenantProvisioningService())->provision([
             'name' => 'Pilot Grammar School',

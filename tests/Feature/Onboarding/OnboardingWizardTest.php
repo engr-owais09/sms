@@ -37,13 +37,14 @@ class OnboardingWizardTest extends TestCase
             ->call('nextStep')
             ->assertSet('currentStep', 2)
 
-            // Step 2: Info
+            // Step 2: Info & Owner Password
             ->set('name', 'Lyceum International School')
             ->set('slug', 'lyceum-campus')
             ->set('registrationNo', 'REG-2026-0042')
             ->set('email', 'info@lyceum.test')
             ->set('phone', '03009876543')
             ->set('city', 'Lahore')
+            ->set('ownerPassword', 'LyceumOwner#2026')
             ->call('nextStep')
             ->assertSet('currentStep', 3)
 
@@ -79,6 +80,8 @@ class OnboardingWizardTest extends TestCase
             // Step 8: Staff & Complete
             ->set('principalName', 'Mrs. Farzana')
             ->set('principalEmail', 'principal@lyceum.test')
+            ->set('cashierName', 'Mr. Kamran')
+            ->set('cashierEmail', 'cashier@lyceum.test')
             ->call('nextStep')
             ->assertSet('currentStep', 9);
 
@@ -91,21 +94,51 @@ class OnboardingWizardTest extends TestCase
         $this->assertTrue($tenant->onboarding_completed);
 
         // Assert Main Branch Provisioned
-        $branch = $tenant->branches()->first();
+        $branch = $tenant->branches()->withoutGlobalScopes()->first();
         $this->assertNotNull($branch);
         $this->assertEquals('Gulberg Campus', $branch->name);
         $this->assertTrue($branch->is_main);
 
         // Assert Domain Mapping Provisioned
-        $domain = Domain::where('domain', 'lyceum-campus.educore.test')->first();
+        $domain = Domain::withoutGlobalScopes()->where('domain', 'lyceum-campus.educore.test')->first();
         $this->assertNotNull($domain);
         $this->assertEquals($tenant->id, $domain->tenant_id);
 
-        // Assert Owner User Provisioned
-        $owner = $tenant->users()->first();
+        // Assert Owner User Provisioned with custom password (not hardcoded)
+        $owner = $tenant->users()->where('email', 'info@lyceum.test')->first();
         $this->assertNotNull($owner);
-        $this->assertEquals('info@lyceum.test', $owner->email);
+        $this->assertTrue(\Illuminate\Support\Facades\Hash::check('LyceumOwner#2026', $owner->password));
+        $this->assertFalse(\Illuminate\Support\Facades\Hash::check('Owner123456!', $owner->password));
         setPermissionsTeamId($tenant->id);
         $this->assertTrue($owner->hasRole('institute_owner'));
+
+        // Assert Relational Records Created for Steps 5-8
+        $this->assertDatabaseHas('academic_sessions', [
+            'tenant_id' => $tenant->id,
+            'name' => 'Session 2026-2027',
+            'is_current' => true,
+        ]);
+        $this->assertDatabaseHas('fiscal_years', [
+            'tenant_id' => $tenant->id,
+            'name' => 'FY Session 2026-2027',
+            'status' => 'open',
+        ]);
+        $this->assertGreaterThan(0, \App\Modules\Academic\Models\School\SchoolClass::withoutGlobalScopes()->where('tenant_id', $tenant->id)->count());
+        $this->assertGreaterThan(0, \App\Modules\Academic\Models\School\SchoolSection::withoutGlobalScopes()->where('tenant_id', $tenant->id)->count());
+        $this->assertGreaterThan(0, \App\Modules\Finance\Models\ChartOfAccount::withoutGlobalScopes()->where('tenant_id', $tenant->id)->count());
+        $this->assertDatabaseHas('fee_categories', [
+            'tenant_id' => $tenant->id,
+            'code' => 'TUITION',
+        ]);
+
+        // Assert Invited Principal & Cashier Users & Roles Created
+        $principal = $tenant->users()->where('email', 'principal@lyceum.test')->first();
+        $cashier = $tenant->users()->where('email', 'cashier@lyceum.test')->first();
+        $this->assertNotNull($principal);
+        $this->assertNotNull($cashier);
+        $this->assertTrue($principal->hasRole('principal'));
+        $this->assertTrue($cashier->hasRole('cashier'));
+        $this->assertDatabaseHas('password_reset_tokens', ['email' => 'principal@lyceum.test']);
+        $this->assertDatabaseHas('password_reset_tokens', ['email' => 'cashier@lyceum.test']);
     }
 }

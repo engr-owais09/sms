@@ -8,8 +8,12 @@ use App\Modules\Academic\Models\Academy\AcademyBatchEnrollment;
 use App\Modules\Academic\Models\School\AcademicSession;
 use App\Modules\Academic\Models\School\SchoolSection;
 use App\Modules\Academic\Models\School\SchoolStudentEnrollment;
+use App\Modules\Institute\Models\Tenant;
 use App\Modules\Student\Models\Guardian;
 use App\Modules\Student\Models\Student;
+use App\Modules\SuperAdmin\Exceptions\QuotaExceededException;
+use App\Modules\SuperAdmin\Models\TenantSubscription;
+use App\Modules\SuperAdmin\Services\QuotaEnforcementService;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -35,6 +39,74 @@ class StudentAdmissionService
     }
 
     /**
+     * Assert that the target tenant is allowed to admit another active student under its SaaS subscription quota.
+     */
+    protected function enforceStudentAdmissionQuota(?Tenant $tenant, ?string $tenantId, bool $forceCheck = false): void
+    {
+        $resolvedTenant = $tenant ?? ($tenantId ? Tenant::query()->find($tenantId) : null);
+        if (!$resolvedTenant) {
+            return;
+        }
+
+        if ($resolvedTenant->isSuspended()) {
+            throw new QuotaExceededException("Tenant '{$resolvedTenant->name}' is suspended and cannot admit students.");
+        }
+
+        $hasSubscription = TenantSubscription::withoutGlobalScopes()
+            ->where('tenant_id', $resolvedTenant->id)
+            ->exists();
+
+        if ($hasSubscription || $forceCheck) {
+            app(QuotaEnforcementService::class)->assertCanAdmitStudent($resolvedTenant);
+        }
+    }
+
+    /**
+     * Create or reuse an existing guardian (by blind-indexed CNIC within the tenant) and attach to the student.
+     */
+    protected function attachOrCreateGuardian(Student $student, string $tenantId, array $data): ?Guardian
+    {
+        if (empty($data['guardian_phone']) || empty($data['guardian_name'])) {
+            return null;
+        }
+
+        $guardian = null;
+        if (!empty($data['guardian_cnic'])) {
+            $guardian = Guardian::where('tenant_id', $tenantId)
+                ->whereCnic((string) $data['guardian_cnic'])
+                ->first();
+        }
+
+        if (!$guardian) {
+            $guardianNames = explode(' ', trim((string) $data['guardian_name']), 2);
+            $guardian = Guardian::create([
+                'tenant_id' => $tenantId,
+                'first_name' => $guardianNames[0],
+                'last_name' => $guardianNames[1] ?? '',
+                'phone' => $data['guardian_phone'],
+                'email' => !empty($data['guardian_email']) ? $data['guardian_email'] : null,
+                'address' => !empty($data['guardian_address']) ? $data['guardian_address'] : null,
+            ]);
+
+            if (!empty($data['guardian_cnic'])) {
+                $guardian->setCnicAttribute($data['guardian_cnic']);
+                $guardian->save();
+            }
+        }
+
+        $student->guardians()->attach($guardian->id, [
+            'tenant_id' => $tenantId,
+            'relationship_type' => $data['guardian_relation'] ?? 'father',
+            'is_primary' => true,
+            'is_emergency_contact' => true,
+            'is_financial_sponsor' => true,
+            'can_pickup' => true,
+        ]);
+
+        return $guardian;
+    }
+
+    /**
      * Admit a new student into a formal School section.
      */
     public function admitToSchool(array $data): array
@@ -46,6 +118,9 @@ class StudentAdmissionService
                 ?? ($data['branch_id'] ?? null) 
                 ?? $tenant?->branches()->where('is_main', true)->value('id') 
                 ?? $tenant?->branches()->value('id');
+
+            // 0. Server-side SaaS student quota enforcement
+            $this->enforceStudentAdmissionQuota($tenant, $tenantId, (bool) ($data['enforce_quota'] ?? false));
 
             // 1. Generate unique admission number
             $admissionNumber = $data['admission_number'] ?? $this->generateAdmissionNumber($tenantId);
@@ -72,32 +147,7 @@ class StudentAdmissionService
             }
 
             // 3. Attach Guardian if provided
-            $guardian = null;
-            if (!empty($data['guardian_phone']) && !empty($data['guardian_name'])) {
-                $guardianNames = explode(' ', $data['guardian_name'], 2);
-                $guardian = Guardian::create([
-                    'tenant_id' => $tenantId,
-                    'first_name' => $guardianNames[0],
-                    'last_name' => $guardianNames[1] ?? '',
-                    'phone' => $data['guardian_phone'],
-                    'email' => $data['guardian_email'] ?? null,
-                    'address' => $data['guardian_address'] ?? null,
-                ]);
-
-                if (!empty($data['guardian_cnic'])) {
-                    $guardian->setCnicAttribute($data['guardian_cnic']);
-                    $guardian->save();
-                }
-
-                $student->guardians()->attach($guardian->id, [
-                    'tenant_id' => $tenantId,
-                    'relationship_type' => $data['guardian_relation'] ?? 'father',
-                    'is_primary' => true,
-                    'is_emergency_contact' => true,
-                    'is_financial_sponsor' => true,
-                    'can_pickup' => true,
-                ]);
-            }
+            $guardian = $this->attachOrCreateGuardian($student, $tenantId, $data);
 
             // 4. Enroll student into School Section
             $sessionId = $data['academic_session_id'];
@@ -134,6 +184,9 @@ class StudentAdmissionService
                 ?? $tenant?->branches()->where('is_main', true)->value('id') 
                 ?? $tenant?->branches()->value('id');
 
+            // 0. Server-side SaaS student quota enforcement
+            $this->enforceStudentAdmissionQuota($tenant, $tenantId, (bool) ($data['enforce_quota'] ?? false));
+
             $admissionNumber = $data['admission_number'] ?? $this->generateAdmissionNumber($tenantId, 'ACAD');
 
             $student = Student::create([
@@ -154,6 +207,9 @@ class StudentAdmissionService
                 $student->setBFormAttribute($data['b_form']);
                 $student->save();
             }
+
+            // Attach Guardian for Academy track students as well
+            $guardian = $this->attachOrCreateGuardian($student, $tenantId, $data);
 
             // Enroll into specified batches
             $batchIds = (array) ($data['batch_ids'] ?? []);
@@ -179,6 +235,7 @@ class StudentAdmissionService
 
             return [
                 'student' => $student,
+                'guardian' => $guardian,
                 'enrollments' => $enrollments,
             ];
         });

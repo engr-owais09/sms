@@ -26,6 +26,59 @@
         <div class="bg-rose-50 border border-rose-300 text-rose-900 px-4 py-3 rounded-lg text-sm">✕ {{ $errorMessage }}</div>
     @endif
 
+    <!-- Submit Student Leave Request Card -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-slate-700 mb-4">
+            {{ $isRtl ? 'نئی رخصت کی درخواست درج کریں' : 'Submit Student Leave Request' }}
+        </h2>
+        <form wire:submit="submitLeaveRequest" class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">{{ $isRtl ? 'طالب علم' : 'Student' }} *</label>
+                <select wire:model="studentId" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg">
+                    <option value="">-- Select Student --</option>
+                    @foreach($students as $stu)
+                        <option value="{{ $stu->id }}">{{ $stu->first_name }} {{ $stu->last_name }} ({{ $stu->admission_number }})</option>
+                    @endforeach
+                </select>
+                @error('studentId') <span class="text-[11px] text-rose-600">{{ $message }}</span> @enderror
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">{{ $isRtl ? 'قسم' : 'Leave Type' }} *</label>
+                <select wire:model="leaveType" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg">
+                    <option value="sick">Sick Leave</option>
+                    <option value="casual">Casual Leave</option>
+                    <option value="family">Family / Emergency</option>
+                    <option value="other">Other</option>
+                </select>
+                @error('leaveType') <span class="text-[11px] text-rose-600">{{ $message }}</span> @enderror
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">{{ $isRtl ? 'آغاز تاریخ' : 'Start Date' }} *</label>
+                <input type="date" wire:model="startDate" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg">
+                @error('startDate') <span class="text-[11px] text-rose-600">{{ $message }}</span> @enderror
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">{{ $isRtl ? 'اختتام تاریخ' : 'End Date' }} *</label>
+                <input type="date" wire:model="endDate" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg">
+                @error('endDate') <span class="text-[11px] text-rose-600">{{ $message }}</span> @enderror
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">{{ $isRtl ? 'وجہ' : 'Reason' }} *</label>
+                <div class="flex gap-2">
+                    <input type="text" wire:model="reason" placeholder="Medical / Family event" class="flex-1 px-3 py-2 text-xs border border-slate-300 rounded-lg">
+                    <button type="submit" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg whitespace-nowrap">
+                        + Submit
+                    </button>
+                </div>
+                @error('reason') <span class="text-[11px] text-rose-600">{{ $message }}</span> @enderror
+            </div>
+        </form>
+    </div>
+
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-left text-xs text-slate-600">

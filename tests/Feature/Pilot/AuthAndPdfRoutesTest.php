@@ -84,10 +84,55 @@ class AuthAndPdfRoutesTest extends TestCase
         $this->post('http://school-a.localhost/logout')->assertRedirect('http://school-a.localhost/login');
         $this->assertGuest();
 
+        $superAdmin = \App\Models\User::factory()->create([
+            'email' => 'superadmin@educore.test',
+            'password' => \Illuminate\Support\Facades\Hash::make('StrongTestPass123!'),
+            'is_super_admin' => true,
+            'tenant_id' => null,
+            'branch_id' => null,
+            'status' => 'active',
+        ]);
+        setPermissionsTeamId(null);
+        $superAdmin->assignRole('super_admin');
+
         $this->post('http://localhost/login', [
             'email' => 'superadmin@educore.test',
-            'password' => 'Admin123456!',
+            'password' => 'StrongTestPass123!',
         ])->assertRedirect('http://localhost/super-admin');
+    }
+
+    public function test_login_emits_host_only_session_cookies_across_central_and_tenant_hosts(): void
+    {
+        $this->withoutVite();
+
+        $prov = (new TenantProvisioningService())->provision([
+            'name' => 'Pilot Cookie Check',
+            'slug' => 'pilot-cookie',
+            'type' => 'school',
+            'owner_name' => 'Pilot Cookie Owner',
+            'owner_email' => 'cookie@pilot.test',
+            'owner_password' => 'Secret123!',
+            'branch_name' => 'Main',
+            'city' => 'Lahore',
+        ]);
+        Domain::firstOrCreate(
+            ['domain' => 'pilot.localhost'],
+            ['tenant_id' => $prov['tenant']->id, 'is_primary' => true, 'is_verified' => true]
+        );
+
+        $this->assertNull(config('session.domain'));
+
+        $sessionCookieName = config('session.cookie');
+
+        foreach (['http://127.0.0.1:8000/login', 'http://pilot.localhost:8000/login'] as $url) {
+            $response = $this->get($url)->assertStatus(200);
+            $cookies = collect($response->headers->getCookies())->keyBy->getName();
+
+            $this->assertTrue($cookies->has($sessionCookieName), "Missing session cookie on {$url}");
+            $this->assertTrue($cookies->has('XSRF-TOKEN'), "Missing XSRF-TOKEN cookie on {$url}");
+            $this->assertNull($cookies->get($sessionCookieName)->getDomain(), "Session cookie must be host-only on {$url}");
+            $this->assertNull($cookies->get('XSRF-TOKEN')->getDomain(), "XSRF-TOKEN cookie must be host-only on {$url}");
+        }
     }
 
     public function test_production_voucher_receipt_and_report_card_print_routes(): void

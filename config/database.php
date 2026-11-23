@@ -144,6 +144,7 @@ return [
 
     'migrations' => [
         'table' => 'migrations',
+        'connection' => env('DB_MIGRATION_CONNECTION', 'pgsql'),
         'update_date_on_publish' => true,
     ],
 

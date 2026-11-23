@@ -16,13 +16,14 @@ class OnboardingWizard extends Component
     // Step 1: Institute Type
     public string $type = 'school';
 
-    // Step 2: Institute Legal Info
+    // Step 2: Institute Legal Info & Owner Credentials
     public string $name = '';
     public string $slug = '';
     public string $registrationNo = '';
     public string $email = '';
     public string $phone = '';
     public string $city = 'Karachi';
+    public string $ownerPassword = '';
 
     // Step 3: Branding & Locale
     public string $brandColor = '#1e40af';
@@ -59,13 +60,19 @@ class OnboardingWizard extends Component
     protected function rules(): array
     {
         return match ($this->currentStep) {
-            1 => ['type' => 'required|in:school,academy,hybrid'],
+            1 => ['type' => 'required|in:school,academy,hybrid,both'],
             2 => [
                 'name' => 'required|string|min:3|max:100',
-                'slug' => 'required|string|alpha_dash|unique:tenants,slug',
+                'slug' => [
+                    'required',
+                    'string',
+                    'alpha_dash',
+                    \Illuminate\Validation\Rule::unique('tenants', 'slug')->ignore($this->createdTenantId),
+                ],
                 'email' => 'required|email',
                 'phone' => 'required|string|min:10',
                 'city' => 'required|string|max:100',
+                'ownerPassword' => 'required|string|min:8',
             ],
             3 => [
                 'brandColor' => 'required|string',
@@ -86,8 +93,10 @@ class OnboardingWizard extends Component
                 'lateFeeAmount' => 'required|numeric|min:0',
             ],
             8 => [
-                'principalEmail' => 'nullable|email',
-                'cashierEmail' => 'nullable|email',
+                'principalName' => 'nullable|required_with:principalEmail|string|min:2|max:100',
+                'principalEmail' => 'nullable|email|different:email',
+                'cashierName' => 'nullable|required_with:cashierEmail|string|min:2|max:100',
+                'cashierEmail' => 'nullable|email|different:email|different:principalEmail',
             ],
             default => [],
         };
@@ -112,19 +121,30 @@ class OnboardingWizard extends Component
 
     protected function setDefaultTemplates(): void
     {
+        $schoolTemplates = [
+            'Primary Section (Grades 1 to 5)',
+            'Middle Section (Grades 6 to 8)',
+            'Matriculation (Grades 9 & 10)',
+            'Cambridge O-Levels (Years 1 to 3)',
+        ];
+
+        $academyTemplates = [
+            'MDCAT Comprehensive Test Prep',
+            'ECAT Engineering Entry Test',
+            'FSc / Intermediate Evening Coaching',
+            'IELTS & Spoken English Fluency',
+        ];
+
         if ($this->type === 'school') {
-            $this->selectedTemplates = [
-                'Primary Section (Grades 1 to 5)',
-                'Middle Section (Grades 6 to 8)',
-                'Matriculation (Grades 9 & 10)',
-                'Cambridge O-Levels (Years 1 to 3)',
-            ];
+            $this->selectedTemplates = $schoolTemplates;
+        } elseif ($this->type === 'academy') {
+            $this->selectedTemplates = $academyTemplates;
         } else {
             $this->selectedTemplates = [
+                'Matriculation (Grades 9 & 10)',
+                'Cambridge O-Levels (Years 1 to 3)',
                 'MDCAT Comprehensive Test Prep',
                 'ECAT Engineering Entry Test',
-                'FSc / Intermediate Evening Coaching',
-                'IELTS & Spoken English Fluency',
             ];
         }
     }
@@ -151,37 +171,40 @@ class OnboardingWizard extends Component
     public function completeOnboarding(): void
     {
         $provisioningService = app(TenantProvisioningService::class);
+        $normalizedType = $this->type === 'both' ? 'hybrid' : $this->type;
 
         $result = $provisioningService->provision([
             'name' => $this->name,
             'slug' => $this->slug,
-            'type' => $this->type,
+            'type' => $normalizedType,
             'default_locale' => $this->defaultLocale,
             'brand_color' => $this->brandColor,
             'owner_name' => $this->name . ' Admin',
             'owner_email' => $this->email,
-            'owner_password' => 'Owner123456!',
+            'owner_password' => $this->ownerPassword,
             'owner_phone' => $this->phone,
             'branch_name' => $this->branchName,
             'city' => $this->city,
             'address' => $this->branchAddress,
+            'registration_no' => $this->registrationNo,
+            'session_name' => $this->sessionName,
+            'session_start' => $this->startDate,
+            'session_end' => $this->endDate,
+            'working_days' => $this->workingDays,
+            'selected_templates' => $this->selectedTemplates,
+            'fee_due_day' => $this->feeDueDay,
+            'late_fee_type' => $this->lateFeeType,
+            'late_fee_amount' => $this->lateFeeAmount,
+            'principal_name' => $this->principalName ?: null,
+            'principal_email' => $this->principalEmail ?: null,
+            'cashier_name' => $this->cashierName ?: null,
+            'cashier_email' => $this->cashierEmail ?: null,
+            'seed_financial_defaults' => true,
+            'onboarding_step' => 9,
+            'onboarding_completed' => true,
         ]);
 
         $tenant = $result['tenant'];
-        $tenant->update([
-            'onboarding_step' => 9,
-            'onboarding_completed' => true,
-            'settings' => array_merge($tenant->settings ?? [], [
-                'session_name' => $this->sessionName,
-                'session_start' => $this->startDate,
-                'session_end' => $this->endDate,
-                'fee_due_day' => $this->feeDueDay,
-                'late_fee_amount' => $this->lateFeeAmount,
-                'selected_templates' => $this->selectedTemplates,
-                'registration_no' => $this->registrationNo,
-            ]),
-        ]);
-
         $this->createdTenantId = $tenant->id;
         $baseDomain = config('app.base_domain', 'educore.test');
         $this->workspaceUrl = "http://{$tenant->slug}.{$baseDomain}:8000";

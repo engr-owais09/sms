@@ -2,19 +2,22 @@
 
 namespace App\Modules\Finance\Jobs;
 
+use App\Core\Tenancy\Contracts\TenantAwareJob;
+use App\Core\Tenancy\Middleware\EnforceTenantQueueMiddleware;
+use App\Core\Tenancy\PostgresTenantContext;
 use App\Core\Tenancy\TenantContext;
 use App\Modules\Finance\Exceptions\DuplicateInvoiceException;
 use App\Modules\Finance\Services\InvoiceGenerationService;
+use App\Modules\Institute\Models\Tenant;
 use App\Modules\Student\Models\Student;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
-class GenerateSchoolMonthlyVouchersJob implements ShouldQueue
+class GenerateSchoolMonthlyVouchersJob implements ShouldQueue, TenantAwareJob
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -29,12 +32,24 @@ class GenerateSchoolMonthlyVouchersJob implements ShouldQueue
     ) {
     }
 
+    public function getTenantId(): string
+    {
+        return $this->tenantId;
+    }
+
+    public function middleware(): array
+    {
+        return [new EnforceTenantQueueMiddleware()];
+    }
+
     public function handle(InvoiceGenerationService $generationService): void
     {
-        app(TenantContext::class)->setTenantId($this->tenantId);
+        $tenant = Tenant::findOrFail($this->tenantId);
+        app(TenantContext::class)->setTenant($tenant);
+        PostgresTenantContext::set($tenant->id);
 
         // Find active enrolled students in this class
-        $studentsQuery = Student::withoutGlobalScopes()
+        $studentsQuery = Student::query()
             ->join('school_student_enrollments', 'students.id', '=', 'school_student_enrollments.student_id')
             ->join('school_sections', 'school_student_enrollments.school_section_id', '=', 'school_sections.id')
             ->where('students.tenant_id', $this->tenantId)

@@ -38,9 +38,11 @@ class StudentAdmissionForm extends Component
     // Academy-specific fields
     public array $selectedBatchIds = [];
     public float $agreedFee = 0.00;
+    public string $enrollmentTrack = 'school';
 
     // Status message
     public ?string $successMessage = null;
+    public ?string $errorMessage = null;
 
     public function mount(): void
     {
@@ -48,11 +50,29 @@ class StudentAdmissionForm extends Component
         $this->dateOfBirth = now()->subYears(10)->toDateString();
 
         $tenant = app(TenantContext::class)->getTenant();
+        if ($tenant && $tenant->type === 'academy') {
+            $this->enrollmentTrack = 'academy';
+        } else {
+            $this->enrollmentTrack = 'school';
+        }
+
         if ($tenant?->isSchool()) {
             $currentSession = AcademicSession::where('is_current', true)->first()
                 ?? AcademicSession::first();
             $this->sessionId = $currentSession?->id;
         }
+    }
+
+    protected function isSchoolEnrollmentTrack(): bool
+    {
+        $tenant = app(TenantContext::class)->getTenant();
+        if (!$tenant) {
+            return true;
+        }
+        if ($tenant->isHybrid()) {
+            return $this->enrollmentTrack === 'school';
+        }
+        return $tenant->isSchool();
     }
 
     public function updatedClassId(): void
@@ -62,8 +82,6 @@ class StudentAdmissionForm extends Component
 
     protected function rules(): array
     {
-        $tenant = app(TenantContext::class)->getTenant();
-
         $rules = [
             'firstName' => 'required|string|min:2|max:100',
             'lastName' => 'required|string|min:2|max:100',
@@ -76,7 +94,7 @@ class StudentAdmissionForm extends Component
             'guardianRelation' => 'required|string',
         ];
 
-        if ($tenant?->isSchool()) {
+        if ($this->isSchoolEnrollmentTrack()) {
             $rules['sessionId'] = 'required|uuid';
             $rules['classId'] = 'required|uuid';
             $rules['sectionId'] = 'required|uuid';
@@ -89,60 +107,74 @@ class StudentAdmissionForm extends Component
 
     public function submit(): void
     {
+        $this->successMessage = null;
+        $this->errorMessage = null;
         $this->validate();
 
-        $tenant = app(TenantContext::class)->getTenant();
         $admissionService = app(StudentAdmissionService::class);
 
-        if ($tenant?->isSchool()) {
-            $result = $admissionService->admitToSchool([
-                'first_name' => $this->firstName,
-                'last_name' => $this->lastName,
-                'gender' => $this->gender,
-                'date_of_birth' => $this->dateOfBirth,
-                'b_form' => $this->bForm,
-                'blood_group' => $this->bloodGroup,
-                'admission_date' => $this->admissionDate,
-                'guardian_name' => $this->guardianName,
-                'guardian_phone' => $this->guardianPhone,
-                'guardian_email' => $this->guardianEmail,
-                'guardian_cnic' => $this->guardianCnic,
-                'guardian_relation' => $this->guardianRelation,
-                'guardian_address' => $this->guardianAddress,
-                'academic_session_id' => $this->sessionId,
-                'school_section_id' => $this->sectionId,
-                'roll_number' => $this->rollNumber,
-            ]);
+        try {
+            if ($this->isSchoolEnrollmentTrack()) {
+                $result = $admissionService->admitToSchool([
+                    'first_name' => $this->firstName,
+                    'last_name' => $this->lastName,
+                    'gender' => $this->gender,
+                    'date_of_birth' => $this->dateOfBirth,
+                    'b_form' => $this->bForm,
+                    'blood_group' => $this->bloodGroup,
+                    'admission_date' => $this->admissionDate,
+                    'guardian_name' => $this->guardianName,
+                    'guardian_phone' => $this->guardianPhone,
+                    'guardian_email' => $this->guardianEmail,
+                    'guardian_cnic' => $this->guardianCnic,
+                    'guardian_relation' => $this->guardianRelation,
+                    'guardian_address' => $this->guardianAddress,
+                    'academic_session_id' => $this->sessionId,
+                    'school_section_id' => $this->sectionId,
+                    'roll_number' => $this->rollNumber,
+                ]);
 
-            $student = $result['student'];
-            $this->successMessage = "Student {$student->full_name} enrolled successfully with Admission No. [{$student->admission_number}]!";
-        } else {
-            $result = $admissionService->admitToAcademy([
-                'first_name' => $this->firstName,
-                'last_name' => $this->lastName,
-                'gender' => $this->gender,
-                'date_of_birth' => $this->dateOfBirth,
-                'b_form' => $this->bForm,
-                'blood_group' => $this->bloodGroup,
-                'admission_date' => $this->admissionDate,
-                'batch_ids' => $this->selectedBatchIds,
-                'agreed_fee_amount' => $this->agreedFee,
-            ]);
+                $student = $result['student'];
+                $this->successMessage = "Student {$student->full_name} enrolled successfully with Admission No. [{$student->admission_number}]!";
+            } else {
+                $result = $admissionService->admitToAcademy([
+                    'first_name' => $this->firstName,
+                    'last_name' => $this->lastName,
+                    'gender' => $this->gender,
+                    'date_of_birth' => $this->dateOfBirth,
+                    'b_form' => $this->bForm,
+                    'blood_group' => $this->bloodGroup,
+                    'admission_date' => $this->admissionDate,
+                    'guardian_name' => $this->guardianName,
+                    'guardian_phone' => $this->guardianPhone,
+                    'guardian_email' => $this->guardianEmail,
+                    'guardian_cnic' => $this->guardianCnic,
+                    'guardian_relation' => $this->guardianRelation,
+                    'guardian_address' => $this->guardianAddress,
+                    'batch_ids' => $this->selectedBatchIds,
+                    'agreed_fee_amount' => $this->agreedFee,
+                ]);
 
-            $student = $result['student'];
-            $this->successMessage = "Academy student {$student->full_name} registered successfully into selected batches!";
+                $student = $result['student'];
+                $this->successMessage = "Academy student {$student->full_name} registered successfully into selected batches!";
+            }
+
+            $this->reset([
+                'firstName',
+                'lastName',
+                'bForm',
+                'guardianName',
+                'guardianPhone',
+                'guardianEmail',
+                'guardianCnic',
+                'guardianAddress',
+                'rollNumber',
+                'selectedBatchIds',
+            ]);
+        } catch (\Throwable $e) {
+            $this->errorMessage = $e->getMessage();
+            $this->addError('admission', $e->getMessage());
         }
-
-        $this->reset([
-            'firstName',
-            'lastName',
-            'bForm',
-            'guardianName',
-            'guardianPhone',
-            'guardianEmail',
-            'rollNumber',
-            'selectedBatchIds',
-        ]);
     }
 
     public function render()
@@ -160,8 +192,10 @@ class StudentAdmissionForm extends Component
             if ($this->classId) {
                 $sections = SchoolSection::where('school_class_id', $this->classId)->orderBy('name')->get();
             }
-        } else {
-            $batches = AcademyBatch::with('course')->where('status', 'upcoming')->orWhere('status', 'in_progress')->get();
+        }
+
+        if ($tenant?->isAcademy()) {
+            $batches = AcademyBatch::with('course')->whereIn('status', ['upcoming', 'in_progress'])->get();
         }
 
         return view('livewire.student-admission-form', [

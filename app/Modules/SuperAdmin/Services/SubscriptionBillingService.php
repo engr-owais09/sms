@@ -2,6 +2,7 @@
 
 namespace App\Modules\SuperAdmin\Services;
 
+use App\Core\Tenancy\PostgresTenantContext;
 use App\Models\User;
 use App\Modules\Institute\Models\Tenant;
 use App\Modules\Student\Models\Student;
@@ -24,6 +25,8 @@ class SubscriptionBillingService
         ?User $actor = null
     ): TenantSubscription {
         return DB::transaction(function () use ($tenant, $plan, $startTrial, $trialDays, $actor) {
+            PostgresTenantContext::set($tenant->id);
+
             // Cancel any prior active/trial/past_due subscriptions
             TenantSubscription::where('tenant_id', $tenant->id)
                 ->whereIn('status', ['trial', 'active', 'past_due'])
@@ -63,6 +66,7 @@ class SubscriptionBillingService
     public function generateInvoice(TenantSubscription $subscription, float $discountPkr = 0.00): SubscriptionInvoice
     {
         return DB::transaction(function () use ($subscription, $discountPkr) {
+            PostgresTenantContext::set($subscription->tenant_id);
             $subscription->loadMissing('plan');
             $periodStart = $subscription->current_period_start->toDateString();
 
@@ -119,6 +123,7 @@ class SubscriptionBillingService
         }
 
         return DB::transaction(function () use ($invoice, $method, $amountPkr, $reference, $actor) {
+            PostgresTenantContext::set($invoice->tenant_id);
             $locked = SubscriptionInvoice::where('id', $invoice->id)->lockForUpdate()->firstOrFail();
 
             if ($locked->status !== 'unpaid') {

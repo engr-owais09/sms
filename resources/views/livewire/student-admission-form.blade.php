@@ -19,6 +19,12 @@
             <button type="button" wire:click="$set('successMessage', null)" class="text-emerald-600 hover:text-emerald-900">&times;</button>
         </div>
     @endif
+    @if($errorMessage)
+        <div class="m-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm font-semibold flex items-center justify-between">
+            <span>✕ {{ $errorMessage }}</span>
+            <button type="button" wire:click="$set('errorMessage', null)" class="text-rose-600 hover:text-rose-900">&times;</button>
+        </div>
+    @endif
 
     <form wire:submit="submit" class="p-6 sm:p-8 space-y-8">
         <!-- SECTION 1: Student Biographical Details -->
@@ -67,7 +73,19 @@
         </div>
 
         <!-- SECTION 2: Academic Assignment -->
-        @if($tenant?->isSchool())
+        @if($tenant?->isHybrid())
+            <div class="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <span class="text-xs font-bold uppercase text-slate-500">Enrollment Track:</span>
+                <label class="inline-flex items-center gap-1.5 text-xs font-semibold cursor-pointer">
+                    <input type="radio" wire:model.live="enrollmentTrack" value="school"> Formal School Class
+                </label>
+                <label class="inline-flex items-center gap-1.5 text-xs font-semibold cursor-pointer">
+                    <input type="radio" wire:model.live="enrollmentTrack" value="academy"> Academy Coaching Batch
+                </label>
+            </div>
+        @endif
+
+        @if(($tenant?->isHybrid() && $enrollmentTrack === 'school') || (!$tenant?->isHybrid() && $tenant?->isSchool()))
             <div>
                 <h3 class="text-base font-bold text-slate-900 border-b border-slate-200 pb-2 mb-4">
                     {{ $isRtl ? '2. اسکول کلاس اور سیکشن کی تفویض' : '2. Class & Section Allocation' }}

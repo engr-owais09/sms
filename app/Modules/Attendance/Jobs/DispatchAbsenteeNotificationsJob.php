@@ -2,6 +2,8 @@
 
 namespace App\Modules\Attendance\Jobs;
 
+use App\Core\Tenancy\Contracts\TenantAwareJob;
+use App\Core\Tenancy\Middleware\EnforceTenantQueueMiddleware;
 use App\Core\Tenancy\PostgresTenantContext;
 use App\Core\Tenancy\TenantContext;
 use App\Modules\Attendance\Models\AcademyAttendanceRecord;
@@ -15,7 +17,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 
-class DispatchAbsenteeNotificationsJob implements ShouldQueue
+class DispatchAbsenteeNotificationsJob implements ShouldQueue, TenantAwareJob
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -25,6 +27,16 @@ class DispatchAbsenteeNotificationsJob implements ShouldQueue
         public string $sourceSessionId,
         public string $channel = 'sms'
     ) {
+    }
+
+    public function getTenantId(): string
+    {
+        return $this->tenantId;
+    }
+
+    public function middleware(): array
+    {
+        return [new EnforceTenantQueueMiddleware()];
     }
 
     public function handle(): void

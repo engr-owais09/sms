@@ -27,7 +27,7 @@
                     {{ $isRtl ? 'ہم آپ کے منتخب کردہ ماڈل کے مطابق ماڈیولز اور ترتیبات خودکار بنائیں گے۔' : 'We will customize default workflows, terminology, and modules based on your model.' }}
                 </p>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <label class="relative flex flex-col p-5 border-2 rounded-xl cursor-pointer transition-all {{ $type === 'school' ? 'border-indigo-600 bg-indigo-50/40 shadow-sm' : 'border-slate-200 hover:border-slate-300' }}">
                         <input type="radio" wire:model.live="type" value="school" class="sr-only">
                         <div class="flex items-center justify-between mb-3">
@@ -53,6 +53,20 @@
                         <span class="font-bold text-lg text-slate-900">{{ $isRtl ? 'اکیڈمی / کوچنگ سینٹر' : 'Academy / Coaching Center' }}</span>
                         <span class="text-xs text-slate-500 mt-1">
                             {{ $isRtl ? 'مضامین، بیجز، کریش کورسز، انٹری ٹیسٹ، اور قسط وار فیس ماڈل۔' : 'Programs, dynamic courses, rolling batches, flexible subject enrollment, and installment fee plans.' }}
+                        </span>
+                    </label>
+
+                    <label class="relative flex flex-col p-5 border-2 rounded-xl cursor-pointer transition-all {{ in_array($type, ['hybrid', 'both'], true) ? 'border-indigo-600 bg-indigo-50/40 shadow-sm' : 'border-slate-200 hover:border-slate-300' }}">
+                        <input type="radio" wire:model.live="type" value="hybrid" class="sr-only">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xl">🏛️</span>
+                            @if(in_array($type, ['hybrid', 'both'], true))
+                                <span class="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs">✓</span>
+                            @endif
+                        </div>
+                        <span class="font-bold text-lg text-slate-900">{{ $isRtl ? 'ہائبرڈ (اسکول + اکیڈمی)' : 'Hybrid (School + Academy)' }}</span>
+                        <span class="text-xs text-slate-500 mt-1">
+                            {{ $isRtl ? 'صبح باقاعدہ اسکول اور شام کوچنگ بیجز ایک ہی کیمپس میں۔' : 'Combined morning K-12 school classes and evening coaching batches on one unified ledger.' }}
                         </span>
                     </label>
                 </div>
@@ -108,6 +122,12 @@
                             <input type="text" wire:model="city" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg" placeholder="Karachi">
                             @error('city') <span class="text-xs text-rose-600">{{ $message }}</span> @enderror
                         </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">{{ $isRtl ? 'ایڈمنسٹریٹر پاس ورڈ' : 'Owner Account Password' }} *</label>
+                        <input type="password" wire:model="ownerPassword" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500" placeholder="{{ $isRtl ? 'کم از کم 8 حروف' : 'Minimum 8 characters' }}">
+                        @error('ownerPassword') <span class="text-xs text-rose-600">{{ $message }}</span> @enderror
                     </div>
                 </div>
             </div>

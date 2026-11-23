@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Modules\Attendance\Models\AcademyAttendanceRecord;
 use App\Modules\Attendance\Models\SchoolAttendanceRecord;
 use App\Modules\Attendance\Models\StudentLeaveRequest;
+use App\Modules\Student\Models\Student;
 use InvalidArgumentException;
 use RuntimeException;
 
@@ -14,19 +15,60 @@ class LeaveManagementService
 {
     public function submitLeave(array $data): StudentLeaveRequest
     {
+        if (empty($data['tenant_id']) || empty($data['branch_id']) || empty($data['student_id'])) {
+            throw new InvalidArgumentException('Tenant, branch, and student are required to submit a leave request.');
+        }
+
+        if (empty($data['start_date']) || empty($data['end_date'])) {
+            throw new InvalidArgumentException('Start date and end date are required.');
+        }
+
         if (strtotime($data['end_date']) < strtotime($data['start_date'])) {
             throw new InvalidArgumentException("End date cannot be earlier than start date.");
         }
 
-        return TenantTransactionManager::run(function () use ($data) {
+        $leaveType = $data['leave_type'] ?? 'sick';
+        if ($leaveType === 'emergency') {
+            $leaveType = 'family';
+        }
+        if (!in_array($leaveType, ['sick', 'casual', 'family', 'other'], true)) {
+            throw new InvalidArgumentException("Invalid leave type [{$leaveType}].");
+        }
+
+        $reason = trim((string) ($data['reason'] ?? ''));
+        if ($reason === '') {
+            throw new InvalidArgumentException('Leave reason is required.');
+        }
+
+        return TenantTransactionManager::run(function () use ($data, $leaveType, $reason) {
+            $student = Student::withoutGlobalScopes()
+                ->where('tenant_id', $data['tenant_id'])
+                ->where('id', $data['student_id'])
+                ->first();
+
+            if (!$student) {
+                throw new InvalidArgumentException('Selected student does not belong to this workspace.');
+            }
+
+            $overlapping = StudentLeaveRequest::where('tenant_id', $data['tenant_id'])
+                ->where('student_id', $student->id)
+                ->whereIn('status', ['pending', 'approved'])
+                ->whereDate('start_date', '<=', $data['end_date'])
+                ->whereDate('end_date', '>=', $data['start_date'])
+                ->exists();
+
+            if ($overlapping) {
+                throw new InvalidArgumentException('An overlapping pending or approved leave request already exists for this student.');
+            }
+
             return StudentLeaveRequest::create([
                 'tenant_id' => $data['tenant_id'],
                 'branch_id' => $data['branch_id'],
-                'student_id' => $data['student_id'],
-                'leave_type' => $data['leave_type'] ?? 'sick',
+                'student_id' => $student->id,
+                'leave_type' => $leaveType,
                 'start_date' => $data['start_date'],
                 'end_date' => $data['end_date'],
-                'reason' => $data['reason'],
+                'reason' => $reason,
                 'status' => 'pending',
             ]);
         });

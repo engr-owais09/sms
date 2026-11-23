@@ -31,6 +31,35 @@ class Branch extends Model
         'is_main' => 'boolean',
     ];
 
+    protected static function booted(): void
+    {
+        static::creating(function (Branch $branch) {
+            if (!$branch->tenant_id) {
+                return;
+            }
+
+            $tenant = Tenant::query()->find($branch->tenant_id);
+            if (!$tenant) {
+                return;
+            }
+
+            if ($tenant->isSuspended()) {
+                throw new \App\Modules\SuperAdmin\Exceptions\QuotaExceededException(
+                    "Tenant '{$tenant->name}' is suspended and cannot create branches."
+                );
+            }
+
+            $hasSubscriptionRecord = \App\Modules\SuperAdmin\Models\TenantSubscription::withoutGlobalScopes()
+                ->where('tenant_id', $tenant->id)
+                ->exists();
+
+            if ($hasSubscriptionRecord) {
+                app(\App\Modules\SuperAdmin\Services\QuotaEnforcementService::class)
+                    ->assertCanCreateBranch($tenant);
+            }
+        });
+    }
+
     public function users(): HasMany
     {
         return $this->hasMany(User::class, 'branch_id');

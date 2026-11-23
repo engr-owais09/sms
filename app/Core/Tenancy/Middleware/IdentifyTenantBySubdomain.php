@@ -33,8 +33,9 @@ class IdentifyTenantBySubdomain
                 }
             }
 
-            // Set tenant in application singleton and Spatie team context
+            // Set tenant in application singleton, PostgreSQL RLS session context, and Spatie team context
             app(TenantContext::class)->setTenant($tenant);
+            PostgresTenantContext::set($tenant->id, isLocal: false);
             setPermissionsTeamId($tenant->id);
             if (auth()->check()) {
                 auth()->user()->unsetRelation('roles')->unsetRelation('permissions');
@@ -46,6 +47,8 @@ class IdentifyTenantBySubdomain
                 app(TenantContext::class)->setBranch($mainBranch);
             }
         } else {
+            app(TenantContext::class)->clear();
+            PostgresTenantContext::reset();
             setPermissionsTeamId(null);
             if (auth()->check()) {
                 auth()->user()->unsetRelation('roles')->unsetRelation('permissions');
@@ -70,7 +73,21 @@ class IdentifyTenantBySubdomain
      */
     protected function resolveTenant(string $host): ?Tenant
     {
-        // 1. Check custom domains first
+        // 1. Check custom domains first (supports both superuser and RLS-enforced educore_app via security definer lookup)
+        if (\Illuminate\Support\Facades\DB::getDriverName() === 'pgsql') {
+            try {
+                $row = \Illuminate\Support\Facades\DB::selectOne(
+                    'SELECT public.resolve_tenant_id_by_domain(?) AS tenant_id',
+                    [$host]
+                );
+                if (!empty($row?->tenant_id)) {
+                    return Tenant::query()->find($row->tenant_id);
+                }
+            } catch (\Throwable) {
+                // Fallback to Eloquent lookup if helper function is not yet migrated
+            }
+        }
+
         $domainRecord = Domain::query()->where('domain', $host)->where('is_verified', true)->first();
         if ($domainRecord) {
             return $domainRecord->tenant;

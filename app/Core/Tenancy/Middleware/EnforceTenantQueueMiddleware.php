@@ -54,19 +54,41 @@ class EnforceTenantQueueMiddleware
             throw new TenantSuspendedException("Tenant [{$tenant->name}] is suspended. Queue execution halted.");
         }
 
-        // 4. Establish Application Singleton
-        app(TenantContext::class)->setTenant($tenant);
+        // 4. Snapshot any pre-existing context (e.g. synchronous dispatch inside an HTTP request)
+        $tenantContext = app(TenantContext::class);
+        $previousTenant = $tenantContext->getTenant();
+        $previousBranch = $tenantContext->getBranch();
+        $previousPgTenantId = PostgresTenantContext::get();
 
-        // 5. Establish Transaction-Safe Database RLS Context
-        return DB::transaction(function () use ($tenant, $job, $next) {
-            PostgresTenantContext::set($tenant->id);
+        // 5. Establish Application Singleton
+        $tenantContext->setTenant($tenant);
+
+        // 6. Establish Transaction-Safe Database RLS Context
+        return DB::transaction(function () use (
+            $tenant,
+            $job,
+            $next,
+            $tenantContext,
+            $previousTenant,
+            $previousBranch,
+            $previousPgTenantId
+        ) {
+            PostgresTenantContext::set($tenant->id, isLocal: true);
 
             try {
                 return $next($job);
             } finally {
-                // Guaranteed context cleanup regardless of job success or exception
-                PostgresTenantContext::reset();
-                app(TenantContext::class)->clear();
+                // Guaranteed context cleanup or restoration when running via dispatchSync inside an active request
+                if ($previousTenant && $previousTenant->id === $tenant->id) {
+                    $tenantContext->setTenant($previousTenant);
+                    if ($previousBranch) {
+                        $tenantContext->setBranch($previousBranch);
+                    }
+                    PostgresTenantContext::set($previousPgTenantId ?: $previousTenant->id, isLocal: false);
+                } else {
+                    PostgresTenantContext::reset();
+                    $tenantContext->clear();
+                }
             }
         });
     }
