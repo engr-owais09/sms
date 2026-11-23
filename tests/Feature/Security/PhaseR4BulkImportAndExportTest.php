@@ -5,10 +5,21 @@ namespace Tests\Feature\Security;
 use App\Core\Tenancy\PostgresTenantContext;
 use App\Core\Tenancy\TenantContext;
 use App\Models\User;
+use App\Modules\Academic\Models\School\AcademicSession;
+use App\Modules\Academic\Models\School\SchoolClass;
+use App\Modules\Academic\Models\School\SchoolSection;
+use App\Modules\Attendance\Models\SchoolAttendanceRecord;
+use App\Modules\Attendance\Models\SchoolAttendanceSession;
+use App\Modules\Attendance\Services\AttendanceBulkImportService;
+use App\Modules\Finance\Models\FeeInvoice;
+use App\Modules\Finance\Models\JournalEntry;
+use App\Modules\Finance\Services\GeneralLedgerService;
+use App\Modules\Finance\Services\OpeningBalanceImportService;
 use App\Modules\Institute\Services\StaffBulkImportService;
 use App\Modules\Institute\Services\TenantProvisioningService;
 use App\Modules\Student\Models\Guardian;
 use App\Modules\Student\Models\Student;
+use App\Modules\Student\Services\BulkPromotionService;
 use App\Modules\Student\Services\StudentBulkImportService;
 use App\Modules\SuperAdmin\Exceptions\QuotaExceededException;
 use App\Modules\SuperAdmin\Models\TenantSubscription;
@@ -178,5 +189,74 @@ class PhaseR4BulkImportAndExportTest extends TestCase
             ->post('http://stream-a.educore.test/students/import', ['csv_file' => $file, 'dry_run' => 0])
             ->assertRedirect();
         $this->assertDatabaseHas('students', ['tenant_id' => $provA['tenant']->id, 'admission_number' => 'STR-A-2']);
+    }
+
+    public function test_opening_balance_attendance_backfill_and_bulk_promotion_respect_locks_gl_and_isolation(): void
+    {
+        (new RoleAndPermissionSeeder())->run();
+
+        $prov = app(TenantProvisioningService::class)->provision([
+            'name' => 'Bulk Ops School',
+            'slug' => 'bulk-ops',
+            'type' => 'school',
+            'owner_name' => 'Owner',
+            'owner_email' => 'owner@bulkops.test',
+            'owner_password' => 'StrongPass123!',
+        ]);
+        $tenant = $prov['tenant'];
+        $branch = $prov['branch'];
+        $owner = $prov['owner'];
+
+        app(TenantContext::class)->setTenant($tenant, $branch);
+        PostgresTenantContext::set($tenant->id);
+        app(GeneralLedgerService::class)->seedDefaultChartOfAccounts($tenant->id);
+
+        $student = Student::create([
+            'tenant_id' => $tenant->id,
+            'branch_id' => $branch->id,
+            'admission_number' => 'BLK-001',
+            'first_name' => 'Nadia',
+            'last_name' => 'Khan',
+            'date_of_birth' => '2012-01-01',
+            'admission_date' => '2026-01-01',
+            'gender' => 'female',
+            'status' => 'active',
+        ]);
+
+        // R4.4 Opening Balance Import -> Balanced GL
+        $balCsv = "admission_number,amount_pkr,due_date,description\nBLK-001,7500,2026-06-10,Prior year arrears\n";
+        $balRes = app(OpeningBalanceImportService::class)->process($balCsv, $tenant, $branch, $owner, dryRun: false);
+        $this->assertSame(1, $balRes['imported']);
+        $inv = FeeInvoice::where('tenant_id', $tenant->id)->where('invoice_number', 'INV-OPEN-BLK-001')->firstOrFail();
+        $entry = JournalEntry::with('lines')->findOrFail($inv->journal_entry_id);
+        $this->assertEquals(7500.0, (float) $entry->lines->where('entry_type', 'debit')->sum('amount'));
+        $this->assertEquals(7500.0, (float) $entry->lines->where('entry_type', 'credit')->sum('amount'));
+
+        // R4.5 Attendance Backfill respects locked sessions
+        $session = AcademicSession::create(['tenant_id' => $tenant->id, 'name' => '2026-2027', 'start_date' => '2026-04-01', 'end_date' => '2027-03-31', 'is_current' => true]);
+        $class = SchoolClass::create(['tenant_id' => $tenant->id, 'name' => 'Grade 8', 'numeric_level' => 8, 'display_order' => 8]);
+        $section = SchoolSection::create(['tenant_id' => $tenant->id, 'school_class_id' => $class->id, 'name' => 'Section A', 'max_capacity' => 40]);
+
+        SchoolAttendanceSession::create([
+            'tenant_id' => $tenant->id,
+            'branch_id' => $branch->id,
+            'academic_session_id' => $session->id,
+            'school_section_id' => $section->id,
+            'attendance_date' => '2026-05-01',
+            'marked_by_user_id' => $owner->id,
+            'status' => 'locked',
+        ]);
+
+        $attCsv = "admission_number,attendance_date,status,remarks\nBLK-001,2026-05-01,present,Locked day\nBLK-001,2026-05-02,absent,Sick\n";
+        $attRes = app(AttendanceBulkImportService::class)->process($attCsv, $tenant, $branch, $session, $section, $owner, dryRun: false);
+        $this->assertSame(1, $attRes['imported']);
+        $this->assertCount(1, $attRes['errors']);
+        $this->assertSame(1, SchoolAttendanceRecord::where('tenant_id', $tenant->id)->count());
+
+        // R4.6 Bulk Promotion
+        $nextClass = SchoolClass::create(['tenant_id' => $tenant->id, 'name' => 'Grade 9', 'numeric_level' => 9, 'display_order' => 9]);
+        $nextSection = SchoolSection::create(['tenant_id' => $tenant->id, 'school_class_id' => $nextClass->id, 'name' => 'Section A', 'max_capacity' => 40]);
+        $promoted = app(BulkPromotionService::class)->promote($tenant, [$student->id], $session, $nextSection, $owner->id);
+        $this->assertSame(1, $promoted);
     }
 }

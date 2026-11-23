@@ -302,7 +302,7 @@ Legend: `[ ]` open · `[~]` in progress · `[x]` done (with evidence in changelo
 **Phase R1** — [ ] R1.1 · [ ] R1.2 · [ ] R1.3 · [ ] R1.4 · [ ] R1.5 · [ ] R1.6 · [ ] R1.7 · [ ] R1.8 · [ ] R1.9 · [ ] R1.10 · [ ] R1.11  
 **Phase R2** — [ ] R2.1 · [ ] R2.2 · [ ] R2.3 · [ ] R2.4 · [ ] R2.5 · [ ] R2.6 · [ ] R2.7  → **Gate A:** [ ]  
 **Phase R3** — [x] R3.1 · [x] R3.2 · [x] R3.3 · [x] R3.4 · [x] R3.5 · [x] R3.6 · [!] R3.7 · [x] R3.8 · [x] R3.9  
-**Phase R4** — [x] R4.1 · [x] R4.2 · [x] R4.3 · [ ] R4.4 · [ ] R4.5 · [ ] R4.6 · [x] R4.7 · [!] R4.8  → **Gate B:** [~]  
+**Phase R4** — [x] R4.1 · [x] R4.2 · [x] R4.3 · [x] R4.4 · [x] R4.5 · [x] R4.6 · [x] R4.7 · [!] R4.8  → **Gate B:** [~]  
 **Phase R5** — [x] R5.1 · [x] R5.2 · [x] R5.3 · [x] R5.4 · [x] R5.5 · [x] R5.6 · [x] R5.7 · [!] R5.8  
 **Phase R6** — [x] R6.1 · [x] R6.2 · [x] R6.3 · [x] R6.4 · [x] R6.5 · [x] R6.6  → **Gate C:** [~]  
 **Phase R7** — [x] R7.1 · [x] R7.2 · [x] R7.3 · [x] R7.4 · [x] R7.5 · [x] R7.6 · [!] R7.7  
