@@ -18,6 +18,7 @@ class Guardian extends Model
 
     protected $fillable = [
         'tenant_id',
+        'user_id',
         'first_name',
         'last_name',
         'cnic',

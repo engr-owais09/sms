@@ -2,6 +2,9 @@
 
 use App\Core\Localization\Middleware\SetLocaleAndDirection;
 use App\Core\Tenancy\Middleware\IdentifyTenantBySubdomain;
+use App\Http\Middleware\EnforceIdleSessionTimeout;
+use App\Http\Middleware\EnforcePasswordChangeMiddleware;
+use App\Http\Middleware\SecurityHeadersMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -14,9 +17,16 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->validateCsrfTokens(except: [
+            'webhooks/payments/*',
+        ]);
+
         $middleware->web(append: [
             IdentifyTenantBySubdomain::class,
             SetLocaleAndDirection::class,
+            EnforceIdleSessionTimeout::class,
+            EnforcePasswordChangeMiddleware::class,
+            SecurityHeadersMiddleware::class,
         ]);
 
         $middleware->alias([
