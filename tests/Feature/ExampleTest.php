@@ -10,12 +10,13 @@ class ExampleTest extends TestCase
     use RefreshDatabase;
 
     /**
-     * The root URL redirects to the super-admin control plane when accessed without tenant subdomain.
+     * The root URL renders the public SaaS marketing landing page for guests on the central domain.
      */
     public function test_the_application_returns_a_successful_response(): void
     {
         $response = $this->get('/');
 
-        $response->assertRedirect(route('super-admin.dashboard'));
+        $response->assertOk();
+        $response->assertSee(__('sms.landing.platform.hero_title', [], 'en'));
     }
 }

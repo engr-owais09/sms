@@ -82,6 +82,22 @@
             <span>🎓</span>
             <span>{{ $isRtl ? 'نتائج اور رزلٹ کارڈ' : 'Results & Report Cards' }}</span>
         </a>
+        <a href="{{ route('tenant.academics.setup') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold text-sm shadow-sm hover:border-indigo-300 hover:text-indigo-600 transition-colors">
+            <span>🏛️</span>
+            <span>{{ $isRtl ? 'تعلیمی ڈھانچہ' : 'Academic Setup' }}</span>
+        </a>
+        <a href="{{ route('tenant.staff.index') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold text-sm shadow-sm hover:border-indigo-300 hover:text-indigo-600 transition-colors">
+            <span>👔</span>
+            <span>{{ $isRtl ? 'اسٹاف اور اختیارات' : 'Staff & Roles' }}</span>
+        </a>
+        <a href="{{ route('tenant.finance.operations') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold text-sm shadow-sm hover:border-indigo-300 hover:text-indigo-600 transition-colors">
+            <span>💸</span>
+            <span>{{ $isRtl ? 'اخراجات، ریفنڈز اور رعایت' : 'Expenses, Refunds & Concessions' }}</span>
+        </a>
+        <a href="{{ route('tenant.exams.assessments') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold text-sm shadow-sm hover:border-indigo-300 hover:text-indigo-600 transition-colors">
+            <span>🏆</span>
+            <span>{{ $isRtl ? 'اکیڈمی ٹیسٹ اور رینکنگ' : 'Academy Assessments' }}</span>
+        </a>
     </div>
 
     <!-- Dynamic Metrics by Institute Model -->
