@@ -160,6 +160,9 @@ class StudentLivewireComponentTest extends TestCase
             ->set('admissionDate', '2026-05-20')
             ->set('guardianName', 'Nawaz Sharif')
             ->set('guardianPhone', '+923007654321')
+            ->set('guardianEmail', 'nawaz@example.test')
+            ->set('guardianCnic', '35202-4455667-1')
+            ->set('guardianRelation', 'father')
             ->set('selectedBatchIds', [$batch->id])
             ->set('agreedFee', 18000.00)
             ->call('submit')
@@ -170,6 +173,13 @@ class StudentLivewireComponentTest extends TestCase
         $this->assertNotNull($student);
         $this->assertCount(1, $student->academyEnrollments);
         $this->assertEquals($batch->id, $student->academyEnrollments->first()->academy_batch_id);
+
+        // Verify guardian was persisted and linked for Academy track student (DEF-F05)
+        $this->assertCount(1, $student->guardians);
+        $guardian = $student->guardians->first();
+        $this->assertEquals('Nawaz Sharif', $guardian->full_name);
+        $this->assertEquals('+923007654321', $guardian->phone);
+        $this->assertEquals('35202-4455667-1', $guardian->cnic);
     }
 
     public function test_student_directory_renders_and_filters_correctly(): void
@@ -211,6 +221,75 @@ class StudentLivewireComponentTest extends TestCase
             ->set('statusFilter', 'alumni')
             ->assertSee('Babar Azam')
             ->assertDontSee('Haris Rauf');
+    }
+
+    public function test_academy_student_admission_form_does_not_leak_upcoming_batches_from_other_tenants(): void
+    {
+        $academyA = Tenant::create([
+            'name' => 'KIPS Academy',
+            'slug' => 'kips-academy-a',
+            'type' => 'academy',
+            'status' => 'active',
+        ]);
+        $branchA = Branch::withoutGlobalScopes()->create([
+            'tenant_id' => $academyA->id,
+            'name' => 'Johar Town Campus',
+            'code' => 'KIPS-A',
+            'city' => 'Lahore',
+            'is_main' => true,
+        ]);
+
+        $academyB = Tenant::create([
+            'name' => 'Step Academy',
+            'slug' => 'step-academy-b',
+            'type' => 'academy',
+            'status' => 'active',
+        ]);
+        $branchB = Branch::withoutGlobalScopes()->create([
+            'tenant_id' => $academyB->id,
+            'name' => 'Gulberg Campus',
+            'code' => 'STEP-B',
+            'city' => 'Lahore',
+            'is_main' => true,
+        ]);
+
+        app(TenantContext::class)->setTenant($academyB);
+        $progB = AcademyProgram::create(['tenant_id' => $academyB->id, 'branch_id' => $branchB->id, 'name' => 'MDCAT B', 'category' => 'entry_test']);
+        $courseB = AcademyCourse::create(['tenant_id' => $academyB->id, 'academy_program_id' => $progB->id, 'name' => 'Biology B', 'base_fee' => 15000, 'duration_weeks' => 10]);
+        $batchB = AcademyBatch::create([
+            'tenant_id' => $academyB->id,
+            'branch_id' => $branchB->id,
+            'academy_course_id' => $courseB->id,
+            'name' => 'LEAKED-STEP-UPCOMING-BATCH',
+            'start_date' => '2026-06-01',
+            'end_date' => '2026-08-01',
+            'max_capacity' => 50,
+            'status' => 'upcoming',
+        ]);
+
+        app(TenantContext::class)->setTenant($academyA);
+        app(TenantContext::class)->setBranch($branchA);
+        $progA = AcademyProgram::create(['tenant_id' => $academyA->id, 'branch_id' => $branchA->id, 'name' => 'MDCAT A', 'category' => 'entry_test']);
+        $courseA = AcademyCourse::create(['tenant_id' => $academyA->id, 'academy_program_id' => $progA->id, 'name' => 'Physics A', 'base_fee' => 15000, 'duration_weeks' => 10]);
+        $batchA = AcademyBatch::create([
+            'tenant_id' => $academyA->id,
+            'branch_id' => $branchA->id,
+            'academy_course_id' => $courseA->id,
+            'name' => 'KIPS-OWN-UPCOMING-BATCH',
+            'start_date' => '2026-06-01',
+            'end_date' => '2026-08-01',
+            'max_capacity' => 50,
+            'status' => 'upcoming',
+        ]);
+
+        $component = Livewire::test(StudentAdmissionForm::class)
+            ->assertSee('KIPS-OWN-UPCOMING-BATCH')
+            ->assertDontSee('LEAKED-STEP-UPCOMING-BATCH');
+
+        $batches = $component->viewData('batches');
+        $this->assertCount(1, $batches);
+        $this->assertEquals($batchA->id, $batches->first()->id);
+        $this->assertNotEquals($batchB->id, $batches->first()->id);
     }
 }
 

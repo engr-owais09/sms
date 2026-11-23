@@ -56,7 +56,11 @@ class AttendanceLivewireComponentTest extends TestCase
             'is_main' => true,
         ]);
 
-        $this->user = User::factory()->create(['name' => 'Teacher Ayesha']);
+        $this->user = User::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Teacher Ayesha',
+            'status' => 'active',
+        ]);
         $this->actingAs($this->user);
 
         app(TenantContext::class)->setTenant($this->tenant);
@@ -189,5 +193,42 @@ class AttendanceLivewireComponentTest extends TestCase
 
         $leave->refresh();
         $this->assertEquals('approved', $leave->status);
+    }
+
+    public function test_timetable_builder_isolates_teachers_by_tenant_and_rejects_cross_tenant_teacher(): void
+    {
+        $otherTenant = Tenant::create([
+            'name' => 'Other School',
+            'slug' => 'other-att-school',
+            'type' => 'school',
+            'status' => 'active',
+        ]);
+
+        $otherTeacher = User::factory()->create([
+            'tenant_id' => $otherTenant->id,
+            'name' => 'Other Tenant Teacher',
+            'status' => 'active',
+        ]);
+
+        $superAdmin = User::factory()->create([
+            'tenant_id' => null,
+            'name' => 'Platform Super Admin',
+            'is_super_admin' => true,
+            'status' => 'active',
+        ]);
+
+        $component = Livewire::test(TimetableBuilder::class);
+        $teachers = $component->viewData('teachers');
+
+        $this->assertCount(1, $teachers);
+        $this->assertTrue($teachers->contains('id', $this->user->id));
+        $this->assertFalse($teachers->contains('id', $otherTeacher->id));
+        $this->assertFalse($teachers->contains('id', $superAdmin->id));
+
+        // Attempting to assign a foreign teacher ID must fail closed
+        $component
+            ->set('teacherId', $otherTeacher->id)
+            ->call('assignSlot')
+            ->assertSee('Selected teacher does not belong to this workspace.');
     }
 }

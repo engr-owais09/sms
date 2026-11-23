@@ -182,4 +182,102 @@ class SchoolAttendanceService
         $session->update(['status' => 'locked']);
         return $session->fresh();
     }
+
+    /**
+     * Assign a substitute/proxy teacher to cover a timetable slot on a specific date,
+     * verifying tenant membership, clash freedom, and synchronizing the period attendance session.
+     */
+    public function assignSubstituteTeacher(
+        SchoolTimetableEntry $entry,
+        string $attendanceDate,
+        User $substituteTeacher,
+        ?User $actor = null
+    ): SchoolAttendanceSession {
+        if ($substituteTeacher->tenant_id !== $entry->tenant_id || $substituteTeacher->status !== 'active') {
+            throw new InvalidArgumentException('Substitute teacher must be an active staff member in this workspace.');
+        }
+
+        if ($entry->teacher_id !== null && (int) $entry->teacher_id === (int) $substituteTeacher->id) {
+            throw new InvalidArgumentException('Substitute teacher cannot be the same as the regularly assigned teacher.');
+        }
+
+        $holiday = AcademicHoliday::resolveForDate($entry->tenant_id, $entry->branch_id, $attendanceDate);
+        if ($holiday) {
+            throw new RuntimeException("Cannot assign substitute on holiday '{$holiday->title}' ({$attendanceDate}).");
+        }
+
+        if (!$entry->is_active) {
+            throw new InvalidArgumentException('Cannot assign a substitute to an inactive timetable slot.');
+        }
+
+        if (\Illuminate\Support\Carbon::parse($attendanceDate)->dayOfWeekIso !== (int) $entry->day_of_week) {
+            throw new InvalidArgumentException('Substitution date does not fall on the weekday of the selected timetable slot.');
+        }
+
+        $entry->loadMissing('period');
+
+        return TenantTransactionManager::run(function () use ($entry, $attendanceDate, $substituteTeacher) {
+            // 1. Check regular weekly timetable clashes for that day of week & period
+            app(TimetableConflictService::class)->assertNoTeacherConflict(
+                $entry->tenant_id,
+                $entry->academic_session_id,
+                $substituteTeacher->id,
+                (int) $entry->day_of_week,
+                $entry->period,
+                $entry->id
+            );
+
+            // 2. Check if substitute teacher is already covering another period session at the same date & period
+            $doubleBookedSub = SchoolAttendanceSession::join(
+                'school_timetable_entries',
+                'school_attendance_sessions.school_timetable_entry_id',
+                '=',
+                'school_timetable_entries.id'
+            )
+                ->where('school_attendance_sessions.tenant_id', $entry->tenant_id)
+                ->where('school_attendance_sessions.attendance_date', $attendanceDate)
+                ->where('school_attendance_sessions.attendance_mode', 'period')
+                ->where('school_attendance_sessions.marked_by_user_id', $substituteTeacher->id)
+                ->where('school_timetable_entries.school_period_id', $entry->school_period_id)
+                ->where('school_attendance_sessions.school_timetable_entry_id', '!=', $entry->id)
+                ->exists();
+
+            if ($doubleBookedSub) {
+                throw new RuntimeException("Substitute teacher {$substituteTeacher->name} is already assigned to another class during {$entry->period->label} on {$attendanceDate}.");
+            }
+
+            // 3. Create the period attendance session, or re-assign the operator of an existing DRAFT session.
+            //    Submitted/locked sessions already carry attendance data and must never be reset or re-assigned.
+            $existing = SchoolAttendanceSession::where('tenant_id', $entry->tenant_id)
+                ->where('attendance_date', $attendanceDate)
+                ->where('attendance_mode', 'period')
+                ->where('school_timetable_entry_id', $entry->id)
+                ->lockForUpdate()
+                ->first();
+
+            if ($existing) {
+                if ($existing->status !== 'draft') {
+                    throw new RuntimeException("Attendance for this period on {$attendanceDate} is already {$existing->status}; substitute cannot be changed.");
+                }
+
+                if ((int) $existing->marked_by_user_id !== (int) $substituteTeacher->id) {
+                    $existing->update(['marked_by_user_id' => $substituteTeacher->id]);
+                }
+
+                return $existing->fresh();
+            }
+
+            return SchoolAttendanceSession::create([
+                'tenant_id' => $entry->tenant_id,
+                'branch_id' => $entry->branch_id,
+                'academic_session_id' => $entry->academic_session_id,
+                'school_section_id' => $entry->school_section_id,
+                'attendance_date' => $attendanceDate,
+                'attendance_mode' => 'period',
+                'school_timetable_entry_id' => $entry->id,
+                'marked_by_user_id' => $substituteTeacher->id,
+                'status' => 'draft',
+            ]);
+        });
+    }
 }

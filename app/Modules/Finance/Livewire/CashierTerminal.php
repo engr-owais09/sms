@@ -38,7 +38,7 @@ class CashierTerminal extends Component
     public function mount(): void
     {
         $tenant = app(TenantContext::class)->getTenant();
-        $user = auth()->user() ?? User::first();
+        $user = auth()->user();
 
         if ($tenant && $user) {
             $session = CashierSession::where('tenant_id', $tenant->id)
@@ -72,11 +72,15 @@ class CashierTerminal extends Component
             return;
         }
 
-        // Search by invoice barcode / PSID / number first
+        $term = trim($this->searchQuery);
+
+        // Search by invoice barcode / PSID / number first (grouped to preserve TenantScope)
         $invoice = FeeInvoice::with('student')
-            ->where('invoice_number', trim($this->searchQuery))
-            ->orWhere('barcode_code128', trim($this->searchQuery))
-            ->orWhere('psid_1bill', trim($this->searchQuery))
+            ->where(function ($q) use ($term) {
+                $q->where('invoice_number', $term)
+                    ->orWhere('barcode_code128', $term)
+                    ->orWhere('psid_1bill', $term);
+            })
             ->first();
 
         if ($invoice && $invoice->student) {
@@ -85,11 +89,12 @@ class CashierTerminal extends Component
             return;
         }
 
-        // Search by student admission number or name
-        $student = Student::where('admission_number', trim($this->searchQuery))
-            ->orWhere('first_name', 'ILIKE', '%' . trim($this->searchQuery) . '%')
-            ->orWhere('last_name', 'ILIKE', '%' . trim($this->searchQuery) . '%')
-            ->first();
+        // Search by student admission number or name (grouped to preserve TenantScope)
+        $student = Student::where(function ($q) use ($term) {
+            $q->where('admission_number', $term)
+                ->orWhere('first_name', 'ILIKE', '%' . $term . '%')
+                ->orWhere('last_name', 'ILIKE', '%' . $term . '%');
+        })->first();
 
         if ($student) {
             $this->selectStudent($student->id);
@@ -178,7 +183,10 @@ class CashierTerminal extends Component
             return;
         }
 
-        $user = auth()->user() ?? User::first();
+        $user = auth()->user();
+        if (!$user) {
+            throw new \Illuminate\Auth\AuthenticationException('Unauthenticated.');
+        }
         $paymentService = app(PaymentProcessingService::class);
 
         try {

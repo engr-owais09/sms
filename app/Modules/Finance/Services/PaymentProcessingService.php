@@ -52,7 +52,10 @@ class PaymentProcessingService
             $options
         ) {
             $paymentMethod = $options['payment_method'] ?? 'cash';
-            $receivedByUserId = $options['received_by_user_id'] ?? auth()->id() ?? User::first()->id;
+            $receivedByUserId = $options['received_by_user_id'] ?? auth()->id();
+            if (!$receivedByUserId) {
+                throw new InvalidArgumentException('Authenticated user or received_by_user_id is required to process a payment.');
+            }
             $cashierSessionId = $options['cashier_session_id'] ?? null;
             $instrumentRef = $options['instrument_reference'] ?? null;
             $targetInvoiceIds = $options['target_invoice_ids'] ?? [];

@@ -65,7 +65,10 @@ class RollCallRegister extends Component
         }
 
         $branch = app(TenantContext::class)->getBranch() ?? Branch::where('tenant_id', $tenant->id)->first();
-        $actor = auth()->user() ?? User::first();
+        $actor = auth()->user();
+        if (!$actor) {
+            return;
+        }
 
         try {
             if ($this->domainMode === 'school') {
@@ -127,7 +130,10 @@ class RollCallRegister extends Component
             return;
         }
 
-        $actor = auth()->user() ?? User::first();
+        $actor = auth()->user();
+        if (!$actor) {
+            throw new \Illuminate\Auth\AuthenticationException('Unauthenticated.');
+        }
         $statuses = [];
         foreach ($this->roster as $row) {
             $statuses[$row['student_id']] = [

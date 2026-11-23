@@ -341,4 +341,78 @@ class FinanceLivewireComponentTest extends TestCase
             'name' => 'Standard High School Fee 2026',
         ]);
     }
+
+    public function test_voucher_generation_console_generates_monthly_vouchers_and_preserves_tenant_context(): void
+    {
+        $session = AcademicSession::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => '2026-2027',
+            'start_date' => '2026-04-01',
+            'end_date' => '2027-03-31',
+            'is_current' => true,
+        ]);
+
+        $class = SchoolClass::create([
+            'tenant_id' => $this->tenant->id,
+            'branch_id' => $this->branch->id,
+            'name' => 'Grade 9',
+            'numeric_level' => 9,
+            'display_order' => 9,
+        ]);
+
+        $section = SchoolSection::create([
+            'tenant_id' => $this->tenant->id,
+            'school_class_id' => $class->id,
+            'name' => 'Red',
+            'capacity' => 30,
+        ]);
+
+        SchoolStudentEnrollment::create([
+            'tenant_id' => $this->tenant->id,
+            'student_id' => $this->student->id,
+            'academic_session_id' => $session->id,
+            'school_section_id' => $section->id,
+            'enrolled_at' => '2026-04-01',
+            'enrollment_status' => 'active',
+        ]);
+
+        $structure = FeeStructure::create([
+            'tenant_id' => $this->tenant->id,
+            'branch_id' => $this->branch->id,
+            'academic_session_id' => $session->id,
+            'school_class_id' => $class->id,
+            'name' => 'Grade 9 Monthly Structure',
+            'is_active' => true,
+        ]);
+
+        FeeStructureItem::create([
+            'tenant_id' => $this->tenant->id,
+            'fee_structure_id' => $structure->id,
+            'fee_category_id' => $this->tuitionCategory->id,
+            'amount' => 9500.00,
+            'billing_frequency' => 'monthly',
+            'is_optional' => false,
+        ]);
+
+        Livewire::test(VoucherGenerationConsole::class)
+            ->set('branchId', $this->branch->id)
+            ->set('sessionId', $session->id)
+            ->set('classId', $class->id)
+            ->set('billingPeriod', '2026-11')
+            ->set('issueDate', '2026-11-01')
+            ->set('dueDate', '2026-11-10')
+            ->call('generateBatch')
+            ->assertSet('errorMessage', null)
+            ->assertSee('Batch voucher generation complete! Invoices for period 2026-11 processed. Total vouchers in period: 1.');
+
+        $this->assertDatabaseHas('fee_invoices', [
+            'tenant_id' => $this->tenant->id,
+            'student_id' => $this->student->id,
+            'billing_period' => '2026-11',
+            'total_amount' => 9500.00,
+        ]);
+
+        // Verify TenantContext was preserved after dispatchSync
+        $this->assertEquals($this->tenant->id, app(TenantContext::class)->getTenantId());
+    }
 }

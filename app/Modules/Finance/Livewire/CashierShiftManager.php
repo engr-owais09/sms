@@ -39,7 +39,7 @@ class CashierShiftManager extends Component
     public function refreshActiveSession(): void
     {
         $tenant = app(TenantContext::class)->getTenant();
-        $user = auth()->user() ?? User::first();
+        $user = auth()->user();
 
         if ($tenant && $user) {
             $this->activeSession = CashierSession::where('tenant_id', $tenant->id)
@@ -55,7 +55,10 @@ class CashierShiftManager extends Component
         $this->resetFeedback();
         $tenant = app(TenantContext::class)->getTenant();
         $branch = app(TenantContext::class)->getBranch() ?? Branch::where('tenant_id', $tenant->id)->first();
-        $user = auth()->user() ?? User::first();
+        $user = auth()->user();
+        if (!$user) {
+            throw new \Illuminate\Auth\AuthenticationException('Unauthenticated.');
+        }
 
         if (!$branch) {
             $this->errorMessage = 'No active branch selected.';
@@ -145,7 +148,10 @@ class CashierShiftManager extends Component
     public function verifySession(string $sessionId, string $depositAccountCode = '1021'): void
     {
         $this->resetFeedback();
-        $user = auth()->user() ?? User::first();
+        $user = auth()->user();
+        if (!$user) {
+            throw new \Illuminate\Auth\AuthenticationException('Unauthenticated.');
+        }
         $session = CashierSession::findOrFail($sessionId);
 
         try {

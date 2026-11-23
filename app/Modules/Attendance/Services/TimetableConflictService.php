@@ -72,13 +72,13 @@ class TimetableConflictService
         }
     }
 
-    protected function assertNoTeacherConflict(
+    public function assertNoTeacherConflict(
         string $tenantId,
         string $sessionId,
         int $teacherId,
         int $day,
         SchoolPeriod $period,
-        ?string $ignoreId
+        ?string $ignoreId = null
     ): void {
         $schoolClash = SchoolTimetableEntry::with('section')
             ->where('tenant_id', $tenantId)

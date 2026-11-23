@@ -91,7 +91,10 @@ class MarksEntryConsole extends Component
             return;
         }
 
-        $actor = auth()->user() ?? User::first();
+        $actor = auth()->user();
+        if (!$actor) {
+            throw new \Illuminate\Auth\AuthenticationException('Unauthenticated.');
+        }
         $entries = [];
         foreach ($this->markRows as $row) {
             $entries[$row['student_id']] = [
