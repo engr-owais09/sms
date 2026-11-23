@@ -171,7 +171,7 @@ class PaymentProcessingAndExpenseTest extends TestCase
         $this->assertEquals(2000.00, $wallet->balance);
 
         // GL Lines: Debit 1020 Bank (10,000), Credit 1200 A/R (8,000), Credit 2025 Wallet Liability (2,000)
-        $lines = $payment->journalEntry->lines;
+        $lines = $payment->journalEntry()->with('lines.account')->firstOrFail()->lines;
         $this->assertEquals(10000.00, $lines->where('entry_type', 'debit')->sum('amount'));
         $this->assertEquals(10000.00, $lines->where('entry_type', 'credit')->sum('amount'));
 

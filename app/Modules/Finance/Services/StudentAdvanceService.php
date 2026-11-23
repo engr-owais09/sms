@@ -173,7 +173,7 @@ class StudentAdvanceService
                 $advancesQuery->orderByRaw("target_billing_period = '{$invoice->billing_period}' DESC");
             }
 
-            $advances = $advancesQuery->get();
+            $advances = $advancesQuery->with('glAccount')->get();
 
             if ($advances->isEmpty()) {
                 return [];

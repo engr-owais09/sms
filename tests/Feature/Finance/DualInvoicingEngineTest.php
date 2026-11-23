@@ -182,7 +182,7 @@ class DualInvoicingEngineTest extends TestCase
 
         // Verify linked GL journal entry
         $this->assertNotNull($invoice->journal_entry_id);
-        $journalEntry = JournalEntry::find($invoice->journal_entry_id);
+        $journalEntry = JournalEntry::with('lines.account')->find($invoice->journal_entry_id);
         $this->assertNotNull($journalEntry);
         $this->assertEquals('posted', $journalEntry->status);
         $this->assertEquals('invoice_accrual', $journalEntry->source_type);
@@ -264,7 +264,7 @@ class DualInvoicingEngineTest extends TestCase
         $this->assertEquals(9500.00, $invoice->total_amount);
 
         // Verify GL accrual entry
-        $entry = JournalEntry::find($invoice->journal_entry_id);
+        $entry = JournalEntry::with('lines.account')->find($invoice->journal_entry_id);
         $lines = $entry->lines;
 
         $arDebit = $lines->first(fn($l) => $l->entry_type === 'debit' && $l->account->account_code === '1200');
