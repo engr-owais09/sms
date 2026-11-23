@@ -64,18 +64,25 @@ class RoleAndPermissionSeeder extends Seeder
             Permission::firstOrCreate(['name' => $perm, 'guard_name' => 'web']);
         }
 
-        // 3. Create Default Platform Super Admin user if not exists
-        $admin = User::firstOrCreate(
-            ['email' => 'superadmin@educore.test'],
-            [
-                'name' => 'EduCore Super Admin',
-                'password' => Hash::make('Admin123456!'),
-                'is_super_admin' => true,
-                'status' => 'active',
-                'preferred_locale' => 'en',
-            ]
-        );
+        // 3. Provision Super Admin only when explicit environment credentials are supplied.
+        // Never embed default or hardcoded passwords in seeders; use `php artisan educore:create-super-admin` otherwise.
+        $adminEmail = env('EDUCORE_SUPER_ADMIN_EMAIL');
+        $adminPassword = env('EDUCORE_SUPER_ADMIN_PASSWORD');
 
-        $admin->assignRole($superAdminRole);
+        if (is_string($adminEmail) && $adminEmail !== '' && is_string($adminPassword) && strlen($adminPassword) >= 12) {
+            $admin = User::firstOrCreate(
+                ['email' => $adminEmail],
+                [
+                    'name' => env('EDUCORE_SUPER_ADMIN_NAME', 'EduCore Super Admin'),
+                    'password' => Hash::make($adminPassword),
+                    'is_super_admin' => true,
+                    'status' => 'active',
+                    'preferred_locale' => 'en',
+                ]
+            );
+
+            setPermissionsTeamId(null);
+            $admin->assignRole($superAdminRole);
+        }
     }
 }

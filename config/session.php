@@ -169,7 +169,9 @@ return [
     |
     */
 
-    'secure' => env('SESSION_SECURE_COOKIE'),
+    'secure' => env('SESSION_SECURE_COOKIE', env('APP_ENV') === 'production'),
+
+    'idle_timeout_minutes' => (int) env('SESSION_IDLE_TIMEOUT', 30),
 
     /*
     |--------------------------------------------------------------------------

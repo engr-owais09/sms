@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: educore_saas_testing
+          POSTGRES_USER: educore_migrator
+          POSTGRES_PASSWORD: migrator_secret_2026
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_pgsql, pgsql, mbstring, xml, bcmath, intl
+          coverage: none
+
+      - name: Install Composer Dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Composer Security Audit
+        run: composer audit
+
+      - name: NPM Security Audit
+        run: npm audit --audit-level=high
+
+      - name: Prepare Environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate --force
+
+      - name: Run Migrations
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: educore_saas_testing
+          DB_USERNAME: educore_migrator
+          DB_PASSWORD: migrator_secret_2026
+        run: php artisan migrate --force
+
+      - name: Run PHPUnit Test Suite
+        env:
+          APP_ENV: testing
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: educore_saas_testing
+          DB_USERNAME: educore_migrator
+          DB_PASSWORD: migrator_secret_2026
+        run: php artisan test
+
+      - name: Check Code Style (Laravel Pint)
+        continue-on-error: true
+        run: ./vendor/bin/pint --test
