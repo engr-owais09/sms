@@ -30,6 +30,9 @@ This directory contains all architectural blueprints, specifications, database s
 | [phase_6_completion_report.md](file:///c:/Users/Consultant%204/Desktop/Owais/Personal/Development/SMS/doc/phase_6_completion_report.md) | v1.0.0 | **Phase 6 Completion Report:** Verification report covering 5 SaaS Billing & Governance tables, PostgreSQL RLS, quota enforcement, 1Bill/payment settlement, Super Admin Livewire UI, isolated rollback drill, and 133/133 passing automated tests. |
 | [phase_7_completion_report.md](file:///c:/Users/Consultant%204/Desktop/Owais/Personal/Development/SMS/doc/phase_7_completion_report.md) | v1.0.0 | **Phase 7 Final Verification & Pilot Readiness Report:** Master platform audit covering schema-wide PostgreSQL RLS across all non-null `tenant_id` tables, full HTTP route & suspension audit, end-to-end 6-phase tenant lifecycle, `educore:seed-pilot` command, and 138/138 passing automated tests (864 assertions). |
 
+| [sms_master_roadmap.md](file:///c:/Users/Consultant%204/Desktop/Owais/Personal/Development/SMS/doc/sms_master_roadmap.md) | v1.0.0 | **Master Roadmap (single source of truth for next steps):** verified baseline, capacity targets, phases R0–R9 with task IDs and acceptance criteria, hard release gates A–D, decision log with defaults, risk register, and progress tracker. |
+| [roadmap_changelog.md](file:///c:/Users/Consultant%204/Desktop/Owais/Personal/Development/SMS/doc/roadmap_changelog.md) | — | Per-task evidence log appended after every completed roadmap task. |
+
 ---
 
 *Note: All architectural documents, API specifications, and operational guides are maintained and versioned in this folder.*
